@@ -1,0 +1,27 @@
+# Secrets / personal data
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+**/.garmin_tokens/
+*.pem
+*.key
+credentials*.json
+
+# Python
+backend/.venv/
+**/__pycache__/
+*.pyc
+
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/tsconfig.tsbuildinfo
+node_modules/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
