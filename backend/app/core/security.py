@@ -1,6 +1,7 @@
 from functools import lru_cache
 
 import jwt
+import structlog
 from fastapi import Header, HTTPException, status
 from jwt import PyJWKClient
 from sqlalchemy import select
@@ -10,6 +11,8 @@ from fastapi import Depends
 from app.core.config import settings
 from app.db.base import get_db
 from app.models.user import User
+
+log = structlog.get_logger()
 
 
 @lru_cache
@@ -29,6 +32,7 @@ def verify_clerk_token(token: str) -> dict:
             options={"require": ["exp", "iat", "sub"]},
         )
     except jwt.PyJWTError as exc:
+        log.warning("clerk_token_verification_failed", error=str(exc), error_type=type(exc).__name__)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid or expired session token: {exc}",
@@ -42,6 +46,7 @@ async def get_current_user(
 ) -> User:
     """Resolve the authenticated User for a request, auto-provisioning on first sign-in."""
     if not authorization.startswith("Bearer "):
+        log.warning("clerk_token_missing", authorization_header_present=bool(authorization))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing bearer token",

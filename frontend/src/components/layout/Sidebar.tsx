@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
+import { useUser, UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Calendar, Utensils, Heart, Trophy, User, Settings,
@@ -17,15 +17,6 @@ const nav = [
   { href: "/race", label: "Race Strategy", icon: Trophy },
   { href: "/profile", label: "Athlete Profile", icon: User },
 ];
-
-function initials(name: string | null | undefined): string {
-  if (!name) return "?";
-  const parts = name.trim().split(/\s+/);
-  return parts
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? "")
-    .join("");
-}
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -61,9 +52,14 @@ export function Sidebar() {
           {/* Red header strip */}
           <div className="bg-[#CE0E2D] px-3 py-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-[11px] font-black text-white">
-                {initials(displayName)}
-              </div>
+              <UserButton
+                appearance={{
+                  elements: {
+                    avatarBox: "w-7 h-7",
+                    userButtonTrigger: "focus:shadow-none",
+                  },
+                }}
+              />
               <div>
                 <div className="text-xs font-bold text-white leading-none">{displayName}</div>
                 <div className="text-[9px] text-white/70 leading-none mt-0.5">
