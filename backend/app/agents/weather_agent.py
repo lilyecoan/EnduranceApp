@@ -1,6 +1,25 @@
+from typing import Optional
+
 import httpx
 from app.agents.state import AgentState, WeatherOutput
 from app.core.config import settings
+
+
+async def _geocode(location: str) -> Optional[tuple]:
+    """Resolve a free-text location (e.g. race city) to lat/lon via OpenWeatherMap's geocoding API."""
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                "https://api.openweathermap.org/geo/1.0/direct",
+                params={"q": location, "limit": 1, "appid": settings.openweather_api_key},
+            )
+            resp.raise_for_status()
+            results = resp.json()
+        if results:
+            return results[0]["lat"], results[0]["lon"]
+    except Exception:
+        pass
+    return None
 
 
 async def weather_agent_async(lat: float, lon: float) -> WeatherOutput:
@@ -57,40 +76,30 @@ async def weather_agent_async(lat: float, lon: float) -> WeatherOutput:
         return WeatherOutput(condition="Unknown")
 
 
-def weather_agent(state: AgentState) -> AgentState:
-    """Sync wrapper — weather data may already be pre-fetched into garmin_data."""
-    garmin = state.get("garmin_data", {})
+async def weather_agent(state: AgentState) -> AgentState:
+    """Fetch live weather for the athlete's race location, when configured.
+
+    Previously this read weather_temp_c/humidity/wind_kph/condition from
+    garmin_data, fields the Garmin service never populates, so weather was
+    always "unknown" regardless of the separate weather_agent_async
+    function that actually calls OpenWeatherMap (that function existed but
+    was never invoked by the graph). This wires the real fetch in, using a
+    race location resolved to lat/lon via geocoding.
+    """
+    ctx = state["athlete_context"]
     errors = state.get("errors", [])
 
-    temp = garmin.get("weather_temp_c")
-    humidity = garmin.get("weather_humidity")
-    wind = garmin.get("weather_wind_kph")
-    condition = garmin.get("weather_condition", "Unknown")
+    if not ctx.race_location or not settings.openweather_api_key:
+        return {**state, "weather_output": WeatherOutput(condition="Unknown"), "errors": errors}
 
-    heat_stress = False
-    hydration_adj = 0
-    sodium_adj = 0
-    pacing_note = None
-
-    if temp is not None:
-        heat_stress = temp > 28 or (temp is not None and temp > 25 and (humidity or 0) > 70)
-        if temp > 30:
-            hydration_adj = 250
-            sodium_adj = 300
-            pacing_note = "Heat conditions: reduce target pace/power 5-8%."
-        elif temp > 26:
-            hydration_adj = 125
-            sodium_adj = 150
-
-    output = WeatherOutput(
-        temperature_c=temp,
-        humidity_pct=humidity,
-        wind_kph=wind,
-        condition=condition,
-        heat_stress=heat_stress,
-        hydration_adjustment_ml=hydration_adj,
-        sodium_adjustment_mg=sodium_adj,
-        pacing_note=pacing_note,
-    )
+    try:
+        coords = await _geocode(ctx.race_location)
+        if coords is None:
+            output = WeatherOutput(condition="Unknown")
+        else:
+            output = await weather_agent_async(*coords)
+    except Exception as e:
+        errors.append(f"WeatherAgent error: {str(e)}")
+        output = WeatherOutput(condition="Unknown")
 
     return {**state, "weather_output": output, "errors": errors}

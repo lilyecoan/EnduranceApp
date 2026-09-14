@@ -37,6 +37,11 @@ def training_load_agent(state: AgentState) -> AgentState:
         can_progress = False
         should_reduce = False
 
+        # These thresholds are calibrated for real TSB (ctl - atl, roughly
+        # +/-40). garmin_service.py previously mapped Garmin's acute:chronic
+        # loadRatio (~0.8-1.5) into this field, which made these branches
+        # fire on essentially arbitrary values; that mapping is now fixed to
+        # compute real TSB, so these thresholds are meaningful again.
         if tsb is not None:
             if tsb > 25:
                 load_status = "Very fresh — possible detraining"

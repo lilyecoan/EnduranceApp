@@ -1,7 +1,15 @@
-"""Garmin Connect service — singleton with token caching to avoid repeated logins."""
+"""Garmin data source — Phase 1 demo/fixture provider.
+
+This is deliberately NOT a per-user integration yet: real per-athlete Garmin
+access requires Garmin Connect Developer Program OAuth approval, which has
+not been applied for. Until then this is a single, clearly-labeled demo
+data source (`source: "live"` when a real login+fetch succeeds against the
+configured demo account, `source: "demo"` when it falls back to fixtures),
+not a multi-tenant integration.
+"""
 import asyncio
 import os
-from datetime import date
+from datetime import date, timedelta
 from typing import Optional
 import structlog
 
@@ -37,8 +45,10 @@ class GarminService:
         client = await self._get_client()
 
         if client is None:
-            log.warning("garmin_unavailable_using_mock")
-            return self._mock_data()
+            log.warning("garmin_unavailable_using_demo_fixture")
+            data = self._mock_data()
+            data["source"] = "demo"
+            return data
 
         data: dict = {}
 
@@ -50,7 +60,27 @@ class GarminService:
                 data["hrv_rmssd"] = summary.get("lastNight5MinHigh")
                 data["hrv_baseline"] = summary.get("baseline", {}).get("lowUpper")
                 data["hrv_status"] = summary.get("status")
-                data["hrv_5day_avg"] = summary.get("baseline", {}).get("balancedLow")
+
+            # hrv_5day_avg: there is no single-call "5-day average" field in
+            # the HRV summary (the previous mapping from baseline.balancedLow
+            # was a different, unrelated baseline bound). Compute a real
+            # trailing average over the last 5 days' lastNight5MinHigh.
+            trailing = []
+            if hrv:
+                val = hrv.get("hrvSummary", {}).get("lastNight5MinHigh")
+                if val is not None:
+                    trailing.append(val)
+            for offset in range(1, 5):
+                day = target_date - timedelta(days=offset)
+                try:
+                    day_hrv = await asyncio.to_thread(client.get_hrv_data, day.isoformat())
+                except Exception:
+                    continue
+                if day_hrv:
+                    val = day_hrv.get("hrvSummary", {}).get("lastNight5MinHigh")
+                    if val is not None:
+                        trailing.append(val)
+            data["hrv_5day_avg"] = round(sum(trailing) / len(trailing), 1) if trailing else None
         except Exception as e:
             log.warning("garmin_hrv_failed", error=str(e))
 
@@ -64,13 +94,25 @@ class GarminService:
         except Exception as e:
             log.warning("garmin_sleep_failed", error=str(e))
 
-        # Body battery
+        # Body battery — daily level series, NOT the events endpoint's
+        # charge/drain deltas (the previous mapping summed/maxed `.charged`
+        # values from an events-shaped read, which are gain deltas, not
+        # absolute 0-100 levels). `bodyBatteryValuesArray` entries are
+        # [timestamp_ms, status, level, version] per the wider garminconnect
+        # ecosystem convention; verify this against a live payload before
+        # relying on it for anything beyond this demo fixture.
         try:
             bb = await asyncio.to_thread(client.get_body_battery, date_str)
-            if bb:
-                values = [item.get("charged", 0) for item in bb if isinstance(item, dict) and item.get("charged")]
-                data["body_battery_morning"] = values[0] if values else None
-                data["body_battery_high"] = max(values) if values else None
+            levels = []
+            for day_report in bb or []:
+                if not isinstance(day_report, dict):
+                    continue
+                for entry in day_report.get("bodyBatteryValuesArray", []) or []:
+                    if isinstance(entry, list) and len(entry) >= 3 and isinstance(entry[2], (int, float)):
+                        levels.append(entry[2])
+            if levels:
+                data["body_battery_morning"] = levels[0]
+                data["body_battery_high"] = max(levels)
         except Exception as e:
             log.warning("garmin_body_battery_failed", error=str(e))
 
@@ -111,9 +153,17 @@ class GarminService:
             ts = await asyncio.to_thread(client.get_training_status, date_str)
             if ts:
                 load = ts.get("trainingLoadBalance", {}) or {}
-                data["ctl"] = load.get("longTermLoad")
-                data["atl"] = load.get("shortTermLoad")
-                data["tsb"] = load.get("loadRatio")
+                ctl = load.get("longTermLoad")
+                atl = load.get("shortTermLoad")
+                data["ctl"] = ctl
+                data["atl"] = atl
+                # TSB (Training Stress Balance) is ctl - atl, NOT Garmin's
+                # acute:chronic loadRatio (a ~0.8-1.5 ratio, on a completely
+                # different scale from real TSB's roughly +/-40 range).
+                # Keep the raw ratio separately, unused by training_load
+                # thresholds, so the signal isn't lost.
+                data["tsb"] = (ctl - atl) if ctl is not None and atl is not None else None
+                data["acute_chronic_ratio"] = load.get("loadRatio")
                 data["acute_load"] = ts.get("acuteLoad")
                 data["ftp"] = ts.get("cyclingFtp")
                 vo2_raw = ts.get("mostRecentVO2Max")
@@ -136,6 +186,7 @@ class GarminService:
         except Exception as e:
             log.warning("garmin_summary_failed", error=str(e))
 
+        data["source"] = "live"
         return data
 
     def _mock_data(self) -> dict:
@@ -154,6 +205,7 @@ class GarminService:
             "ctl": None,
             "atl": None,
             "tsb": None,
+            "acute_chronic_ratio": None,
             "acute_load": None,
             "vo2_max": 47.2,
             "ftp": None,
@@ -162,12 +214,13 @@ class GarminService:
         }
 
 
-# Module-level singleton — login happens once per process, not per request
-_instance: Optional[GarminService] = None
-
-
 def get_garmin_service(email: str, password: str) -> GarminService:
-    global _instance
-    if _instance is None:
-        _instance = GarminService(email, password)
-    return _instance
+    """Construct the Phase 1 demo/fixture Garmin data source.
+
+    Deliberately not a module-level singleton: the previous version only
+    ever constructed one instance and silently ignored the email/password
+    arguments on every later call. Session reuse across calls still happens
+    via the on-disk TOKEN_STORE that garminconnect's own `login()` manages,
+    so this stays cheap.
+    """
+    return GarminService(email, password)

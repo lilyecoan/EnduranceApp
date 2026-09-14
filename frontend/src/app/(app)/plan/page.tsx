@@ -2,6 +2,7 @@
 import { mockWeeklyPlan } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
 import { Bike, Footprints, Waves, Coffee, Dumbbell } from "lucide-react";
+import { DemoBanner } from "@/components/dashboard/DemoBanner";
 
 const sportIcon: Record<string, React.ElementType> = {
   Run: Footprints, Swim: Waves, Bike: Bike,
@@ -33,7 +34,7 @@ export default function PlanPage() {
         <div>
           <p className="text-[10px] font-bold text-[#CE0E2D] uppercase tracking-[0.2em] mb-1">Weekly Schedule</p>
           <h1 className="text-2xl font-black text-white tracking-tight">Training Plan</h1>
-          <p className="text-sm text-[#525252] mt-0.5">Aug 3–9, 2026 · Base Phase · Week 10 of 34</p>
+          <p className="text-sm text-[#525252] mt-0.5">Example Week</p>
         </div>
         <div className="flex gap-5">
           <div className="text-right">
@@ -47,6 +48,11 @@ export default function PlanPage() {
         </div>
       </div>
 
+      <DemoBanner
+        className="mb-6"
+        message="Example schedule — weekly plan generation isn't built yet. This isn't tailored to your actual data."
+      />
+
       {/* Phase banner */}
       <div className="rounded-xl border border-[#CE0E2D]/20 bg-[#CE0E2D]/5 p-4 mb-6 flex items-center gap-4">
         <div className="w-1 h-12 bg-[#CE0E2D] rounded-full flex-shrink-0" />
@@ -54,7 +60,7 @@ export default function PlanPage() {
           <div className="text-sm font-black text-white mb-0.5">Base Phase — Swim-Heavy + Strength Foundation</div>
           <p className="text-xs text-[#737373] leading-relaxed">
             3 swims · 2 bikes · 1 run · 2 strength doubles. Mon and Sun are double days — swim first, strength after a short rest.
-            Saturday long ride is the key endurance session. RA: bodyweight only on flare days. Check glucose before every swim.
+            Saturday long ride is the key endurance session.
           </p>
         </div>
       </div>

@@ -16,10 +16,13 @@ def diabetes_agent(state: AgentState) -> AgentState:
         return {**state, "diabetes_output": None, "errors": errors}
 
     try:
-        garmin = state.get("garmin_data", {})
-        today_sport = garmin.get("today_workout_sport", "none")
-        duration_min = garmin.get("today_workout_duration_min", 0)
-        intensity = garmin.get("today_workout_intensity", "moderate")
+        # scheduled_workout is an explicit DB lookup from the router — the
+        # previous garmin_data.get("today_workout_*") reads always returned
+        # the defaults below since the Garmin service never populates them.
+        scheduled = state.get("scheduled_workout")
+        today_sport = scheduled["sport"] if scheduled else "none"
+        duration_min = scheduled["duration_min"] if scheduled else 0
+        intensity = scheduled["intensity"] if scheduled else "moderate"
 
         fueling_suggestions = []
         monitoring_suggestions = []

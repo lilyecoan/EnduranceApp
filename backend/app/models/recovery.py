@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Float, Integer, DateTime, ForeignKey, Date, JSON
+from sqlalchemy import Column, Float, Integer, DateTime, ForeignKey, Date, JSON, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -14,7 +14,7 @@ class RecoveryMetric(Base):
     date = Column(Date, nullable=False)
 
     hrv_rmssd = Column(Float)
-    hrv_status = Column(Float)
+    hrv_status = Column(String)
     hrv_baseline = Column(Float)
     hrv_5day_avg = Column(Float)
 
@@ -37,7 +37,7 @@ class RecoveryMetric(Base):
     respiration_avg = Column(Float)
 
     training_readiness_score = Column(Integer)
-    training_readiness_description = Column(Float)
+    training_readiness_description = Column(String)
 
     recovery_time_hours = Column(Integer)
 

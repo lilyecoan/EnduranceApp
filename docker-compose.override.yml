@@ -1,0 +1,8 @@
+# Auto-merged by `docker compose up` for local development only.
+# Production deployments should use docker-compose.yml alone (no --reload,
+# no host bind mount over the built image).
+services:
+  backend:
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    volumes:
+      - ./backend:/app

@@ -13,13 +13,15 @@ def race_strategy_agent(state: AgentState) -> AgentState:
 
     try:
         ftp = garmin.get("ftp") or ctx.ftp_watts
-        weight_kg = ctx.weight_kg or 70.0
-        run_threshold_pace = garmin.get("run_threshold_pace")
-        swim_pace = garmin.get("swim_pace_per_100m")
+        run_threshold_pace = garmin.get("run_threshold_pace") or ctx.run_threshold_pace
+        swim_pace = garmin.get("swim_pace_per_100m") or ctx.swim_pace_per_100m
 
         target_bike_watts = round(ftp * 0.76, 0) if ftp else None
         target_run_pace = round(run_threshold_pace * 1.04, 0) if run_threshold_pace else None
-        target_swim_pace = round((swim_pace or 100) * 1.03, 0)
+        # Previously defaulted to a fabricated 100 sec/100m when swim_pace
+        # was unknown, silently returning a fake target (103) instead of
+        # reporting that no swim pace input exists yet.
+        target_swim_pace = round(swim_pace * 1.03, 0) if swim_pace else None
 
         fueling_plan = [
             {"time": "T-2hr", "item": "Full meal: carbs + protein + moderate fat", "carbs_g": 80},
@@ -53,12 +55,15 @@ def race_strategy_agent(state: AgentState) -> AgentState:
         if ctx.has_type1_diabetes:
             key_notes.append("T1D: Agree race-day glucose strategy with your care team well in advance")
 
-        swim_sec = int((1900 / 100) * target_swim_pace) if target_swim_pace else None
-        bike_sec = int((90_000 / 1000) / ((target_bike_watts / weight_kg * 0.0278 * 50) or 1) * 3600) if target_bike_watts else None
-        run_sec = int(21097 / 1000 * (target_run_pace or 360)) if target_run_pace else None
+        # Predicted finish time removed: this used a second, different
+        # ad-hoc bike-speed formula from performance_agent.py's (now also
+        # removed) estimator, which would silently disagree with it for
+        # identical inputs. No replacement until a validated,
+        # event-specific model exists.
         predicted = None
-        if swim_sec and bike_sec and run_sec:
-            predicted = swim_sec + 180 + bike_sec + 120 + run_sec
+        key_notes.append(
+            "Race-time prediction requires a validated event-specific model — not available in this version."
+        )
 
         output = RaceStrategyOutput(
             swim_pace_per_100m=target_swim_pace,

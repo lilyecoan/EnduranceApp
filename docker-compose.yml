@@ -17,15 +17,10 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+  # Celery/Redis removed for Phase 1 — nothing in this phase needs a task
+  # queue (the coaching route is synchronous request/response, and the
+  # Gemini blocking-call problem is solved via async/await, not a worker).
+  # They return in Phase 2 for async provider-sync jobs.
 
   backend:
     build:
@@ -35,37 +30,18 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://ironmind:ironmind_secret@db:5432/ironmind
-      REDIS_URL: redis://redis:6379
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-1.5-pro}
       OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY}
       GARMIN_EMAIL: ${GARMIN_EMAIL}
       GARMIN_PASSWORD: ${GARMIN_PASSWORD}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
+      CLERK_ISSUER: ${CLERK_ISSUER}
+      CORS_ORIGINS: http://localhost:3000
     depends_on:
       db:
         condition: service_healthy
-      redis:
-        condition: service_healthy
-    volumes:
-      - ./backend:/app
-
-  celery_worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    command: celery -A app.core.celery_app worker --loglevel=info
-    environment:
-      DATABASE_URL: postgresql+asyncpg://ironmind:ironmind_secret@db:5432/ironmind
-      REDIS_URL: redis://redis:6379
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY}
-      GARMIN_EMAIL: ${GARMIN_EMAIL}
-      GARMIN_PASSWORD: ${GARMIN_PASSWORD}
-    depends_on:
-      - db
-      - redis
-      - backend
-    volumes:
-      - ./backend:/app
 
   frontend:
     build:
@@ -74,7 +50,9 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_BACKEND_URL: http://localhost:8000
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
     depends_on:
       - backend
 

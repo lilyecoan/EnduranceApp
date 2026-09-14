@@ -15,6 +15,34 @@ def recovery_agent(state: AgentState) -> AgentState:
         recovery_time = garmin.get("recovery_time_hours")
         readiness_score = garmin.get("training_readiness_score")
 
+        if (
+            hrv_rmssd is None
+            and sleep_score is None
+            and body_battery is None
+            and stress_avg is None
+            and readiness_score is None
+        ):
+            # No real signal at all — do not fabricate a numeric score or a
+            # fatigue assessment from an empty snapshot. A hardcoded default
+            # of 50 previously fell into the "Moderate fatigue" bucket below,
+            # misrepresenting a total absence of data as a measured result.
+            output = RecoveryOutput(
+                score=None,
+                status="Insufficient data",
+                hrv_trend=None,
+                sleep_score=None,
+                body_battery=None,
+                stress_level=None,
+                recovery_time_hours=recovery_time,
+                recommendation=(
+                    "No recovery data available yet. Connect Garmin or log how you feel "
+                    "manually to get a real readiness assessment."
+                ),
+                is_high_readiness=False,
+                is_low_readiness=False,
+            )
+            return {**state, "recovery_output": output, "errors": errors}
+
         score = 50
         hrv_trend = "stable"
         status = "Moderate"
@@ -92,9 +120,10 @@ def recovery_agent(state: AgentState) -> AgentState:
     except Exception as e:
         errors.append(f"RecoveryAgent error: {str(e)}")
         output = RecoveryOutput(
-            score=50,
+            score=None,
             status="Data unavailable",
-            recommendation="Unable to assess recovery. Proceed with caution.",
+            recommendation="Unable to assess recovery due to an error. Proceed with your planned session at your own discretion.",
+            is_low_readiness=False,
         )
 
     return {**state, "recovery_output": output, "errors": errors}

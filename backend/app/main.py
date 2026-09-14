@@ -1,9 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 import structlog
 
 from app.core.config import settings
-from app.routers import coaching
+from app.db.base import engine
+from app.routers import coaching, profile
 
 log = structlog.get_logger()
 
@@ -17,18 +19,26 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://ironmind.ai"],
+    allow_origins=settings.cors_origin_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 app.include_router(coaching.router, prefix="/api/v1")
+app.include_router(profile.router, prefix="/api/v1")
 
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "app": settings.app_name}
+    db_ok = True
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+    except Exception:
+        db_ok = False
+    status_str = "ok" if db_ok else "degraded"
+    return {"status": status_str, "app": settings.app_name, "database": db_ok}
 
 
 @app.get("/")

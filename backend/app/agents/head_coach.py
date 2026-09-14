@@ -1,9 +1,10 @@
 """Head Coach orchestrator — LangGraph workflow that runs all sub-agents and synthesizes with Gemini."""
-import asyncio
 from datetime import date
+from typing import Optional
+
 from langgraph.graph import StateGraph, END
 
-from app.agents.state import AgentState, CoachingPlan
+from app.agents.state import AgentState, AthleteContext, CoachingPlan
 from app.agents.recovery_agent import recovery_agent
 from app.agents.training_load_agent import training_load_agent
 from app.agents.performance_agent import performance_agent
@@ -15,24 +16,59 @@ from app.services.reference_service import get_hardcoded_context
 from app.core.config import settings
 
 
-def _gemini_synthesize(agent_summary: str, athlete_context: dict, reference_context: str) -> str:
-    """Call Gemini to synthesize a unified coaching narrative."""
+def _build_persona(ctx: AthleteContext) -> str:
+    """Describe the athlete being coached from their actual persisted context.
+
+    Previously this was a fixed string naming a specific real person
+    ("Lily Coan"), her age, and her medical conditions, regardless of which
+    account's request was running — that content must never be attributed
+    to another athlete.
+    """
+    lines = []
+    if ctx.age is not None:
+        lines.append(f"Age: {ctx.age}")
+    if ctx.has_type1_diabetes:
+        lines.append("Medical: Type 1 Diabetes (T1D) — never recommend insulin adjustments.")
+    if ctx.race_date and ctx.race_distance:
+        race_bit = f"Race goal: {ctx.race_distance} on {ctx.race_date}"
+        if ctx.weeks_to_race is not None:
+            race_bit += f" (~{ctx.weeks_to_race} weeks away)"
+        lines.append(race_bit)
+    stats = []
+    if ctx.ftp_watts:
+        stats.append(f"FTP {ctx.ftp_watts}W")
+    if ctx.weight_kg:
+        stats.append(f"Weight {ctx.weight_kg}kg")
+    if ctx.vo2_max:
+        stats.append(f"VO2max {ctx.vo2_max}")
+    if stats:
+        lines.append(" | ".join(stats))
+    if not lines:
+        lines.append("No profile details on file yet — coach generally and encourage completing onboarding.")
+    return "\n".join(lines)
+
+
+async def _gemini_synthesize(
+    agent_summary: str, athlete_context: str, reference_context: str
+) -> tuple[Optional[str], Optional[str]]:
+    """Call Gemini to synthesize a unified coaching narrative.
+
+    Returns (message, error) — exactly one is set. Callers must not infer
+    an error from a string prefix.
+    """
     if not settings.gemini_api_key:
-        return ""
+        return None, "Gemini API key not configured"
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=settings.gemini_api_key)
-        model = genai.GenerativeModel(settings.gemini_model)
+        from google import genai
 
-        prompt = f"""You are IronMind AI, an expert endurance coach specializing in Ironman 70.3 triathlon.
-You are coaching Lily Coan, a 22-year-old female athlete with the following medical conditions:
-- Type 1 Diabetes (T1D)
-- Celiac Disease (strict gluten-free)
-- Hashimoto's Thyroiditis
-- Rheumatoid Arthritis (RA)
+        client = genai.Client(api_key=settings.gemini_api_key)
 
-Race goal: Ironman 70.3 Galveston (April 4, 2027) — approximately 34 weeks away.
-Current FTP: 128W | Weight: 63.5kg | VO₂max: 45
+        prompt = f"""You are IronMind AI, an expert endurance coach.
+You are coaching the athlete described below. All advice must be grounded in their actual
+data — never invent conditions, races, or stats not listed here.
+
+--- ATHLETE ---
+{athlete_context}
 
 --- COACHING REFERENCE KNOWLEDGE ---
 {reference_context[:3000]}
@@ -40,21 +76,23 @@ Current FTP: 128W | Weight: 63.5kg | VO₂max: 45
 --- TODAY'S AGENT ASSESSMENTS ---
 {agent_summary}
 
---- ATHLETE CONTEXT ---
-{athlete_context}
-
 Provide a unified coaching message for today (3-4 sentences). Be specific, practical, and warm.
-Address her medical conditions where relevant. All nutrition must be gluten-free.
-Never give medical advice or recommend insulin adjustments.
+Address medical conditions only if listed above, and only as general training-support notes —
+never give medical advice or recommend insulin/medication adjustments.
 End with one specific actionable priority for today."""
 
-        response = model.generate_content(prompt)
-        return response.text.strip()
+        response = await client.aio.models.generate_content(
+            model=settings.gemini_model, contents=prompt
+        )
+        text = (response.text or "").strip()
+        if not text:
+            return None, "Gemini returned an empty response"
+        return text, None
     except Exception as e:
-        return f"[Gemini unavailable: {e}]"
+        return None, str(e)
 
 
-def head_coach_synthesize(state: AgentState) -> AgentState:
+async def head_coach_synthesize(state: AgentState) -> AgentState:
     """Combine all agent outputs into a unified daily coaching plan."""
     recovery = state.get("recovery_output")
     training_load = state.get("training_load_output")
@@ -69,6 +107,10 @@ def head_coach_synthesize(state: AgentState) -> AgentState:
     today_workout = None
     recommendation = ""
 
+    # Previously an if/elif — when both a recovery alert AND a training-load
+    # reduce advisory fired, the load advisory's key_messages entry was
+    # silently dropped. Recovery still takes priority for the recommended
+    # workout, but both messages are now always surfaced.
     if recovery and recovery.is_low_readiness:
         recommendation = recovery.recommendation
         today_workout = {
@@ -77,56 +119,72 @@ def head_coach_synthesize(state: AgentState) -> AgentState:
             "sport": "run or walk",
             "duration_min": 25,
             "intensity": "Zone 1",
-            "description": "Very easy movement only. HR below 118bpm. If RA flare — rest completely.",
+            "description": "Very easy movement only. Keep heart rate low. Stop if anything feels wrong.",
         }
         key_messages.append(f"Recovery Alert: {recovery.status}")
-    elif training_load and training_load.should_reduce:
-        recommendation = training_load.recommendation
-        today_workout = {
-            "type": "endurance",
-            "name": "Reduced Zone 2 Session",
-            "sport": "bike or run",
-            "duration_min": 30,
-            "intensity": "Zone 2",
-            "description": "Reduce planned session 20%. Zone 2 only. Protect joints (RA).",
-        }
+
+    if training_load and training_load.should_reduce:
+        if not today_workout:
+            recommendation = training_load.recommendation
+            today_workout = {
+                "type": "endurance",
+                "name": "Reduced Zone 2 Session",
+                "sport": "bike or run",
+                "duration_min": 30,
+                "intensity": "Zone 2",
+                "description": "Reduce planned session 20%. Zone 2 only.",
+            }
         key_messages.append(f"Load Advisory: {training_load.load_status}")
 
     if weather and weather.heat_stress:
         key_messages.append(f"Heat advisory: {weather.pacing_note or 'Add 150ml/hr fluid.'}")
 
     if nutrition:
+        workout_note = "" if nutrition.has_scheduled_workout else " (no workout scheduled today — rest-day estimate)"
         key_messages.append(
-            f"Fueling: {nutrition.daily_calories} kcal | C: {nutrition.carbs_g}g P: {nutrition.protein_g}g F: {nutrition.fat_g}g — ALL GF"
+            f"Fueling: {nutrition.daily_calories} kcal | C: {nutrition.carbs_g}g P: {nutrition.protein_g}g F: {nutrition.fat_g}g{workout_note}"
         )
 
-    if diabetes and diabetes.disclaimer:
+    if diabetes:
         key_messages.append("T1D reminder: check glucose before/during/after training.")
 
     # Build agent summary for Gemini
     agent_summary_parts = []
     if recovery:
-        agent_summary_parts.append(f"Recovery score: {recovery.score}/100 | Status: {recovery.status} | HRV: {recovery.hrv_rmssd}ms (baseline {state['garmin_data'].get('hrv_baseline')}ms)")
+        score_str = f"{recovery.score}/100" if recovery.score is not None else "no data"
+        agent_summary_parts.append(
+            f"Recovery score: {score_str} | Status: {recovery.status} | HRV: {recovery.hrv_rmssd}ms (baseline {state['garmin_data'].get('hrv_baseline')}ms)"
+        )
     if training_load:
         agent_summary_parts.append(f"Training Load: {training_load.load_status} | TSB: {training_load.tsb} | Phase: {training_load.training_phase} | Risk: {training_load.risk_level}")
     if nutrition:
         agent_summary_parts.append(f"Nutrition: {nutrition.daily_calories} kcal, {nutrition.carbs_g}g carbs, {nutrition.protein_g}g protein")
 
     agent_summary = "\n".join(agent_summary_parts)
-    athlete_ctx_str = f"Weeks to race: {ctx.weeks_to_race} | FTP: {ctx.ftp_watts}W | Weight: {ctx.weight_kg}kg | T1D: {ctx.has_type1_diabetes}"
+    athlete_ctx_str = _build_persona(ctx)
 
-    # Get Gemini synthesis (sync call — LangGraph runs synchronously)
     reference_ctx = get_hardcoded_context()
-    gemini_message = _gemini_synthesize(agent_summary, athlete_ctx_str, reference_ctx)
-    if gemini_message and not gemini_message.startswith("[Gemini"):
+    gemini_message, gemini_error = await _gemini_synthesize(agent_summary, athlete_ctx_str, reference_ctx)
+    if gemini_message:
         recommendation = gemini_message
+    elif not recommendation:
+        # No rule-based recommendation fired above and Gemini didn't return
+        # one either — say so honestly instead of leaving an empty string
+        # or silently reusing a stale value.
+        recommendation = "No new plan generated today."
+        if gemini_error:
+            key_messages.append(f"AI coaching narrative unavailable: {gemini_error}")
 
     confidence_factors = []
-    if recovery:
+    if recovery and recovery.score is not None:
         confidence_factors.append(recovery.score / 100)
     if training_load:
-        confidence_factors.append(0.85)
-    confidence = sum(confidence_factors) / len(confidence_factors) if confidence_factors else 0.7
+        # Scale by how much real signal actually backs this assessment,
+        # rather than a flat, always-0.85 contribution regardless of data.
+        signal_fields = [training_load.ctl, training_load.atl, training_load.tsb]
+        completeness = sum(1 for f in signal_fields if f is not None) / len(signal_fields)
+        confidence_factors.append(0.5 + 0.4 * completeness)
+    confidence = sum(confidence_factors) / len(confidence_factors) if confidence_factors else 0.3
 
     plan = CoachingPlan(
         date=date.today(),

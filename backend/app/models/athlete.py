@@ -18,7 +18,7 @@ class AthleteProfile(Base):
     __tablename__ = "athlete_profiles"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, unique=True)
     age = Column(Integer)
     gender = Column(String(10))
     weight_kg = Column(Float)
@@ -55,7 +55,7 @@ class MedicalProfile(Base):
     __tablename__ = "medical_profiles"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, unique=True)
 
     has_type1_diabetes = Column(Boolean, default=False)
     insulin_sensitivity_factor = Column(Float)

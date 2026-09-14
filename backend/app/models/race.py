@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, Integer, DateTime, ForeignKey, JSON, Date, Text, Enum
+from sqlalchemy import Column, String, Float, Integer, DateTime, ForeignKey, JSON, Date, Text, Enum, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -33,9 +33,9 @@ class RaceEvent(Base):
 
     elevation_gain_m = Column(Float)
     avg_temp_celsius = Column(Float)
-    is_wetsuit_legal = Column(String(10))
+    is_wetsuit_legal = Column(Boolean)
 
-    is_primary = Column(String(10), default="true")
+    is_primary = Column(Boolean, default=True)
 
     user = relationship("User", back_populates="race_events")
     goals = relationship("RaceGoal", back_populates="race_event")

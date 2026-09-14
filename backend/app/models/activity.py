@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, Integer, DateTime, ForeignKey, JSON, Enum
+from sqlalchemy import Column, String, Float, Integer, DateTime, ForeignKey, JSON, Enum, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -19,9 +19,14 @@ class SportType(str, enum.Enum):
 class Activity(Base):
     __tablename__ = "activities"
 
+    __table_args__ = (
+        UniqueConstraint("source", "external_id", name="uq_activity_source_external_id"),
+    )
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    garmin_activity_id = Column(String, unique=True)
+    source = Column(String, nullable=False, default="garmin")
+    external_id = Column(String, nullable=True)
 
     sport_type = Column(Enum(SportType))
     name = Column(String)

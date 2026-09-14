@@ -1,11 +1,13 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Calendar, Utensils, Heart, Trophy, User, Settings,
 } from "lucide-react";
 import { daysUntil } from "@/lib/utils";
+import { useAthleteProfile } from "@/hooks/useAthleteProfile";
 
 const nav = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
@@ -16,11 +18,23 @@ const nav = [
   { href: "/profile", label: "Athlete Profile", icon: User },
 ];
 
-const medals = ["T1D", "Celiac", "Hashimoto's", "RA"];
+function initials(name: string | null | undefined): string {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/);
+  return parts
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
+}
 
 export function Sidebar() {
   const pathname = usePathname();
-  const days = daysUntil("2027-04-04");
+  const { user } = useUser();
+  const { profile } = useAthleteProfile();
+
+  const displayName = user?.fullName || profile?.full_name || "Athlete";
+  const raceDate = profile?.primary_race_date;
+  const days = raceDate ? daysUntil(raceDate) : null;
 
   return (
     <aside className="fixed left-0 top-0 h-full w-60 bg-[#080808] border-r border-[#1e1e1e] flex flex-col z-50">
@@ -48,31 +62,37 @@ export function Sidebar() {
           <div className="bg-[#CE0E2D] px-3 py-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-[11px] font-black text-white">
-                LC
+                {initials(displayName)}
               </div>
               <div>
-                <div className="text-xs font-bold text-white leading-none">Lily Coan</div>
-                <div className="text-[9px] text-white/70 leading-none mt-0.5">IM 70.3 Athlete</div>
+                <div className="text-xs font-bold text-white leading-none">{displayName}</div>
+                <div className="text-[9px] text-white/70 leading-none mt-0.5">
+                  {profile?.primary_race_distance ? profile.primary_race_distance.replace("_", " ").toUpperCase() : "Athlete"}
+                </div>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-sm font-black text-white leading-none">{days}</div>
-              <div className="text-[8px] text-white/70 leading-none">DAYS</div>
-            </div>
+            {days !== null && (
+              <div className="text-right">
+                <div className="text-sm font-black text-white leading-none">{days}</div>
+                <div className="text-[8px] text-white/70 leading-none">DAYS</div>
+              </div>
+            )}
           </div>
           {/* Dark body */}
           <div className="bg-[#111] px-3 py-2">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[9px] text-[#737373] uppercase tracking-widest">Galveston 70.3</span>
-              <span className="text-[9px] text-[#737373]">Mar 20, 2027</span>
+              <span className="text-[9px] text-[#737373] uppercase tracking-widest">
+                {profile?.primary_race_name || "No race set"}
+              </span>
+              {raceDate && <span className="text-[9px] text-[#737373]">{raceDate}</span>}
             </div>
-            <div className="flex flex-wrap gap-1">
-              {medals.map((c) => (
-                <span key={c} className="text-[8px] px-1.5 py-0.5 rounded bg-[#1a1a1a] border border-[#2a2a2a] text-[#737373]">
-                  {c}
+            {profile?.has_type1_diabetes && (
+              <div className="flex flex-wrap gap-1">
+                <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#1a1a1a] border border-[#2a2a2a] text-[#737373]">
+                  T1D
                 </span>
-              ))}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -111,10 +131,6 @@ export function Sidebar() {
           <Settings className="w-4 h-4" />
           Settings
         </Link>
-        <div className="px-3 pt-3 flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-[#CE0E2D] pulse-red" />
-          <span className="text-[10px] text-[#737373]">Garmin + Gemini · Live</span>
-        </div>
         <div className="px-3 pt-2">
           <p className="text-[9px] text-[#404040] font-medium uppercase tracking-widest">
             Anything is Possible®

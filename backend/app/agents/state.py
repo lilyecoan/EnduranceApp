@@ -11,14 +11,17 @@ class AthleteContext(BaseModel):
     vo2_max: Optional[float] = None
     lactate_threshold_hr: Optional[int] = None
     max_hr: Optional[int] = None
+    swim_pace_per_100m: Optional[float] = None
+    run_threshold_pace: Optional[float] = None
     has_type1_diabetes: bool = False
     race_date: Optional[date] = None
     race_distance: Optional[str] = None
+    race_location: Optional[str] = None
     weeks_to_race: Optional[int] = None
 
 
 class RecoveryOutput(BaseModel):
-    score: int
+    score: Optional[int] = None
     status: str
     hrv_rmssd: Optional[float] = None
     hrv_trend: Optional[str] = None
@@ -56,6 +59,7 @@ class PerformanceOutput(BaseModel):
 
 
 class NutritionOutput(BaseModel):
+    has_scheduled_workout: bool = False
     daily_calories: int
     protein_g: float
     carbs_g: float
@@ -119,6 +123,7 @@ class CoachingPlan(BaseModel):
 class AgentState(TypedDict):
     athlete_context: AthleteContext
     garmin_data: dict
+    scheduled_workout: Optional[dict]
     recovery_output: Optional[RecoveryOutput]
     training_load_output: Optional[TrainingLoadOutput]
     performance_output: Optional[PerformanceOutput]
