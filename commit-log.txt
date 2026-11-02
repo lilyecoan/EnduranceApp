@@ -1,0 +1,68 @@
+commit f698219cac3c5ec3f914789328275de28bdbdc18
+Author: Lily <lilyecoan@gmail.com>
+Date:   2026-09-14 18:02:33 -0500
+
+Clerk integration fixes and diagnostics
+
+- Move ClerkProvider inside <body> instead of wrapping <html>, per
+  Clerk's current guidance.
+- Add the required '/__clerk/:path*' proxy matcher entry.
+- Add a UserButton to the Sidebar so there's an actual account/sign-out
+  control in the app shell.
+- Add structured logging in security.py for JWT verification failures
+  to aid debugging the current 401 issue.
+- Un-ignore frontend/.env.local.example (a template with no real
+  secrets) which the broad .env* gitignore rule was silently excluding
+  from version control since it was first added.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+
+----------------------------------------
+commit f748baea16fea32905e9f62558841054abdf1713
+Author: Lily <lilyecoan@gmail.com>
+Date:   2026-09-14 16:30:41 -0500
+
+Phase 1: trustworthy baseline (auth, real data, bug fixes, honest UI)
+
+Adds Clerk-based auth (frontend proxy.ts + backend JWT verification),
+bootstraps Alembic migrations, and wires coaching.py to persist real
+per-user data instead of a client-supplied demo user_id.
+
+Fixes the numeric bugs from the EnduranceApp review: inverted pace
+classification, two disagreeing race-time formulas (removed pending a
+validated model), empty recovery data fabricating a "moderate fatigue"
+score, a mislabeled TSB/loadRatio mapping, a fabricated default swim
+pace, and a calorie/macro arithmetic mismatch.
+
+Rewrites the frontend to pull from real hooks (profile, coaching plan,
+Garmin snapshot) instead of mockData.ts, with an explicit DemoBanner
+wherever content still has no real generation endpoint, and removes
+person-specific medical claims from illustrative demo content.
+
+Repairs deployment config: Next.js standalone output, matching env var
+names, removes the crashing Celery/Redis services (unneeded once the
+blocking Gemini call is fixed), and separates dev/prod Docker commands.
+
+Adds 15 pytest tests covering the fixed agent logic and JWT auth.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+
+----------------------------------------
+commit 108edc72767765a484ba54c41437c35da8b2a9bc
+Author: Lily <lilyecoan@gmail.com>
+Date:   2026-09-09 12:28:00 -0500
+
+Initial commit of IronMind AI endurance coaching platform
+
+Adds Next.js frontend and FastAPI/LangGraph backend, with .gitignore excluding secrets, API keys, Garmin tokens, and local envs.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+
+----------------------------------------
+commit a9d147e0693cc7307a744870150538f8b16909e1
+Author: Lily <lilyecoan@gmail.com>
+Date:   2026-09-09 12:23:17 -0500
+
+first commit
+
+----------------------------------------
