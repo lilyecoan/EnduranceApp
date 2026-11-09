@@ -134,7 +134,7 @@ OPENWEATHER_API_KEY=...
 GARMIN_EMAIL=your@email.com
 GARMIN_[REDACTED]
 SECRET_KEY=change-me-in-production
-DATABASE_URL=postgresql+asyncpg://ironmind:ironmind_secret@localhost:5432/ironmind
+DATABASE_URL=[REDACTED]
 REDIS_URL=redis://localhost:6379
 ```
 </details>
@@ -324,11 +324,11 @@ Changes not staged for commit:
 ```
 --- docker-compose secrets check ---
 8:      POSTGRES_[REDACTED]
-37:      DATABASE_URL: postgresql+asyncpg://ironmind:ironmind_secret@db:5432/ironmind
+37:      DATABASE_URL: [REDACTED]
 39:      OPENAI_[REDACTED]
 40:      OPENWEATHER_[REDACTED]
 42:      GARMIN_[REDACTED]
-57:      DATABASE_URL: postgresql+asyncpg://ironmind:ironmind_secret@db:5432/ironmind
+57:      DATABASE_URL: [REDACTED]
 59:      OPENAI_[REDACTED]
 60:      OPENWEATHER_[REDACTED]
 62:      GARMIN_[REDACTED]
@@ -342,7 +342,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     secret_key: str = "change-me-in-production"
 
-    database_url: str = "postgresql+asyncpg://ironmind:ironmind_secret@localhost:5432/ironmind"
+    database_url: str = "[REDACTED]"
     redis_url: str = "redis://localhost:6379"
 
     gemini_api_key: str = ""
@@ -1612,7 +1612,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     secret_key: str = "change-me-in-production"
 
-    database_url: str = "postgresql+asyncpg://ironmind:ironmind_secret@localhost:5432/ironmind"
+    database_url: str = "[REDACTED]"
     redis_url: str = "redis://localhost:6379"
 
     gemini_api_key: str = ""
@@ -2437,7 +2437,7 @@ Now the `.env.example` files.
 3	GARMIN_EMAIL=your@email.com
 4	GARMIN_[REDACTED]
 5	SECRET_KEY=change-me-in-production
-6	DATABASE_URL=postgresql+asyncpg://ironmind:ironmind_secret@localhost:5432/ironmind
+6	DATABASE_URL=[REDACTED]
 7	REDIS_URL=redis://localhost:6379
 8	
 ```
@@ -2476,7 +2476,7 @@ The file /Users/lilycoan/Downloads/Spring 2025 Schedule/Essentials/Ironman703Das
 <details><summary>Tool result</summary>
 
 ```
-1	DATABASE_URL=postgresql+asyncpg://ironmind:ironmind_secret@localhost:5432/ironmind
+1	DATABASE_URL=[REDACTED]
 2	REDIS_URL=redis://localhost:6379
 3	OPENAI_API_KEY=sk-...
 4	OPENWEATHER_API_KEY=...
@@ -2494,7 +2494,7 @@ The file /Users/lilycoan/Downloads/Spring 2025 Schedule/Essentials/Ironman703Das
 ```json
 {
   "file_path": "/Users/lilycoan/Downloads/Spring 2025 Schedule/Essentials/Ironman703Dashboard/backend/.env.example",
-  "content": "DATABASE_URL=postgresql+asyncpg://ironmind:ironmind_secret@localhost:5432/ironmind\nGEMINI_[REDACTED] Clerk (auth)\nCLERK_SECRET_KEY=sk_test_...\nCLERK_PUBLISHABLE_KEY=pk_test_...\nCLERK_ISSUER=https://your-app.clerk.accounts.dev\n"
+  "content": "DATABASE_URL=[REDACTED]\nGEMINI_[REDACTED] Clerk (auth)\nCLERK_SECRET_KEY=sk_test_...\nCLERK_PUBLISHABLE_KEY=pk_test_...\nCLERK_ISSUER=https://your-app.clerk.accounts.dev\n"
 }
 ```
 
@@ -2534,7 +2534,7 @@ Now S1 — fixing `backend/app/core/config.py`.
 7	    environment: str = "development"
 8	    secret_key: str = "change-me-in-production"
 9	
-10	    database_url: str = "postgresql+asyncpg://ironmind:ironmind_secret@localhost:5432/ironmind"
+10	    database_url: str = "[REDACTED]"
 11	    redis_url: str = "redis://localhost:6379"
 12	
 13	    gemini_api_key: str = ""
@@ -2569,7 +2569,7 @@ Now S1 — fixing `backend/app/core/config.py`.
 ```json
 {
   "file_path": "/Users/lilycoan/Downloads/Spring 2025 Schedule/Essentials/Ironman703Dashboard/backend/app/core/config.py",
-  "content": "from functools import lru_cache\n\nfrom pydantic import AliasChoices, Field\nfrom pydantic_settings import BaseSettings, SettingsConfigDict\n\n\nclass Settings(BaseSettings):\n    model_config = SettingsConfigDict(env_file=\".env\", extra=\"ignore\")\n\n    app_name: str = \"IronMind AI\"\n    environment: str = \"development\"\n\n    database_url: str = \"postgresql+asyncpg://ironmind:ironmind_secret@localhost:5432/ironmind\"\n\n    gemini_api_key: str = Field(\n        default=\"\", validation_alias=AliasChoices(\"GEMINI_API_KEY\", \"GOOGLE_API_KEY\")\n    )\n    gemini_model: str = \"gemini-1.5-pro\"\n\n    openweather_api_key: str = \"\"\n\n    garmin_email: str = \"\"\n    garmin_password: str = \"\"\n\n    # Clerk auth\n    clerk_secret_key: str = \"\"\n    clerk_publishable_key: str = \"\"\n    clerk_issuer: str = \"\"\n\n    # Comma-separated list of allowed CORS origins\n    cors_origins: str = \"http://localhost:3000\"\n\n    @property\n    def cors_origin_list(self) -> list[str]:\n        return [origin.strip() for origin in self.cors_origins.split(\",\") if origin.strip()]\n\n\n@lru_cache\ndef get_settings() -> Settings:\n    return Settings()\n\n\nsettings = get_settings()\n"
+  "content": "from functools import lru_cache\n\nfrom pydantic import AliasChoices, Field\nfrom pydantic_settings import BaseSettings, SettingsConfigDict\n\n\nclass Settings(BaseSettings):\n    model_config = SettingsConfigDict(env_file=\".env\", extra=\"ignore\")\n\n    app_name: str = \"IronMind AI\"\n    environment: str = \"development\"\n\n    database_url: str = \"[REDACTED]\"\n\n    gemini_api_key: str = Field(\n        default=\"\", validation_alias=AliasChoices(\"GEMINI_API_KEY\", \"GOOGLE_API_KEY\")\n    )\n    gemini_model: str = \"gemini-1.5-pro\"\n\n    openweather_api_key: str = \"\"\n\n    garmin_email: str = \"\"\n    garmin_password: str = \"\"\n\n    # Clerk auth\n    clerk_secret_key: str = \"\"\n    clerk_publishable_key: str = \"\"\n    clerk_issuer: str = \"\"\n\n    # Comma-separated list of allowed CORS origins\n    cors_origins: str = \"http://localhost:3000\"\n\n    @property\n    def cors_origin_list(self) -> list[str]:\n        return [origin.strip() for origin in self.cors_origins.split(\",\") if origin.strip()]\n\n\n@lru_cache\ndef get_settings() -> Settings:\n    return Settings()\n\n\nsettings = get_settings()\n"
 }
 ```
 
@@ -8064,7 +8064,7 @@ Now `docker-compose.yml`.
 34	    ports:
 35	      - "8000:8000"
 36	    environment:
-37	      DATABASE_URL: postgresql+asyncpg://ironmind:ironmind_secret@db:5432/ironmind
+37	      DATABASE_URL: [REDACTED]
 38	      REDIS_URL: redis://redis:6379
 39	      OPENAI_[REDACTED]
 40	      OPENWEATHER_[REDACTED]
@@ -8084,7 +8084,7 @@ Now `docker-compose.yml`.
 54	      dockerfile: Dockerfile
 55	    command: celery -A app.core.celery_app worker --loglevel=info
 56	    environment:
-57	      DATABASE_URL: postgresql+asyncpg://ironmind:ironmind_secret@db:5432/ironmind
+57	      DATABASE_URL: [REDACTED]
 58	      REDIS_URL: redis://redis:6379
 59	      OPENAI_[REDACTED]
 60	      OPENWEATHER_[REDACTED]
@@ -8114,7 +8114,7 @@ Now `docker-compose.yml`.
 ```json
 {
   "file_path": "/Users/lilycoan/Downloads/Spring 2025 Schedule/Essentials/Ironman703Dashboard/docker-compose.yml",
-  "content": "version: \"3.9\"\n\nservices:\n  db:\n    image: postgres:16-alpine\n    environment:\n      POSTGRES_USER: ironmind\n      POSTGRES_[REDACTED]      POSTGRES_DB: ironmind\n    ports:\n      - \"5432:5432\"\n    volumes:\n      - postgres_data:/var/lib/postgresql/data\n    healthcheck:\n      test: [\"CMD-SHELL\", \"pg_isready -U ironmind\"]\n      interval: 5s\n      timeout: 5s\n      retries: 5\n\n  # Celery/Redis removed for Phase 1 \u2014 nothing in this phase needs a task\n  # queue (the coaching route is synchronous request/response, and the\n  # Gemini blocking-call problem is solved via async/await, not a worker).\n  # They return in Phase 2 for async provider-sync jobs.\n\n  backend:\n    build:\n      context: ./backend\n      dockerfile: Dockerfile\n    ports:\n      - \"8000:8000\"\n    environment:\n      DATABASE_URL: postgresql+asyncpg://ironmind:ironmind_secret@db:5432/ironmind\n      GEMINI_[REDACTED]      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-1.5-pro}\n      OPENWEATHER_[REDACTED]      GARMIN_EMAIL: ${GARMIN_EMAIL}\n      GARMIN_[REDACTED]      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}\n      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}\n      CLERK_ISSUER: ${CLERK_ISSUER}\n      CORS_ORIGINS: http://localhost:3000\n    depends_on:\n      db:\n        condition: service_healthy\n\n  frontend:\n    build:\n      context: ./frontend\n      dockerfile: Dockerfile\n    ports:\n      - \"3000:3000\"\n    environment:\n      NEXT_PUBLIC_BACKEND_URL: http://localhost:8000\n      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}\n      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}\n    depends_on:\n      - backend\n\nvolumes:\n  postgres_data:\n"
+  "content": "version: \"3.9\"\n\nservices:\n  db:\n    image: postgres:16-alpine\n    environment:\n      POSTGRES_USER: ironmind\n      POSTGRES_[REDACTED]      POSTGRES_DB: ironmind\n    ports:\n      - \"5432:5432\"\n    volumes:\n      - postgres_data:/var/lib/postgresql/data\n    healthcheck:\n      test: [\"CMD-SHELL\", \"pg_isready -U ironmind\"]\n      interval: 5s\n      timeout: 5s\n      retries: 5\n\n  # Celery/Redis removed for Phase 1 \u2014 nothing in this phase needs a task\n  # queue (the coaching route is synchronous request/response, and the\n  # Gemini blocking-call problem is solved via async/await, not a worker).\n  # They return in Phase 2 for async provider-sync jobs.\n\n  backend:\n    build:\n      context: ./backend\n      dockerfile: Dockerfile\n    ports:\n      - \"8000:8000\"\n    environment:\n      DATABASE_URL: [REDACTED]\n      GEMINI_[REDACTED]      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-1.5-pro}\n      OPENWEATHER_[REDACTED]      GARMIN_EMAIL: ${GARMIN_EMAIL}\n      GARMIN_[REDACTED]      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}\n      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}\n      CLERK_ISSUER: ${CLERK_ISSUER}\n      CORS_ORIGINS: http://localhost:3000\n    depends_on:\n      db:\n        condition: service_healthy\n\n  frontend:\n    build:\n      context: ./frontend\n      dockerfile: Dockerfile\n    ports:\n      - \"3000:3000\"\n    environment:\n      NEXT_PUBLIC_BACKEND_URL: http://localhost:8000\n      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}\n      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}\n    depends_on:\n      - backend\n\nvolumes:\n  postgres_data:\n"
 }
 ```
 
@@ -11218,7 +11218,7 @@ Now creating the `ironmind` role and database matching `DATABASE_URL`.
 **Tool call — Bash**
 ```json
 {
-  "command": "export PATH=\"/opt/homebrew/opt/postgresql@16/bin:$PATH\"\nfor i in 1 2 3 4 5; do pg_isready -h localhost -p 5432 >/dev/null 2>&1 && break; sleep 1; done\npg_isready -h localhost -p 5432 2>&1",
+  "command": "export PATH=\"/opt/homebrew/opt/postgresql@16/bin:$PATH\"\nfor i in 1 2 3 4 5; do pg_isready -h localhost -p 5432 >/dev/null 2>&1 && break; sleep 1; done\[REDACTED] -h localhost -p 5432 2>&1",
   "description": "Wait for Postgres to accept connections"
 }
 ```

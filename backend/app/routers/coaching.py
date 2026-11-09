@@ -8,14 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.state import AgentState, AthleteContext
 from app.agents.head_coach import HeadCoachGraph
-from app.core.config import settings
 from app.core.security import get_current_user
 from app.db.base import get_db
 from app.models.race import RaceEvent
 from app.models.recommendation import Recommendation
 from app.models.training import Workout
 from app.models.user import User
-from app.services.garmin_service import get_garmin_service
+from app.services.snapshot import build_snapshot
 from app.services.profile_service import get_or_create_athlete_profile, get_or_create_medical_profile
 
 router = APIRouter(prefix="/coaching", tags=["coaching"])
@@ -119,8 +118,7 @@ async def run_coaching_pipeline(
     db: AsyncSession = Depends(get_db),
 ):
     """Execute the full multi-agent coaching pipeline and return today's plan."""
-    garmin = get_garmin_service(settings.garmin_email, settings.garmin_password)
-    garmin_data = await garmin.get_daily_snapshot()
+    garmin_data = await build_snapshot(db, current_user)
 
     ctx = await _build_athlete_context(req, db, current_user)
     scheduled_workout = await _load_scheduled_workout(db, current_user)
@@ -165,7 +163,10 @@ async def run_coaching_pipeline(
 
 
 @router.get("/garmin/snapshot")
-async def get_garmin_snapshot(current_user: User = Depends(get_current_user)):
-    """Return the raw Garmin data snapshot for the dashboard (demo/fixture source in Phase 1)."""
-    garmin = get_garmin_service(settings.garmin_email, settings.garmin_password)
-    return await garmin.get_daily_snapshot()
+async def get_garmin_snapshot(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return today's wellness snapshot: the athlete's own synced/uploaded data
+    when available ("live"), else the shared demo fixture ("demo")."""
+    return await build_snapshot(db, current_user)

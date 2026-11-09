@@ -30,6 +30,18 @@ class Settings(BaseSettings):
     # Comma-separated list of allowed CORS origins
     cors_origins: str = "http://localhost:3000"
 
+    # Data-source connections. Public URLs build OAuth redirect URIs and the
+    # post-connect redirect back to the app.
+    backend_public_url: str = "http://localhost:8000"
+    frontend_url: str = "http://localhost:3000"
+    # Fernet key (base64, 32 bytes) encrypting stored provider tokens; also
+    # signs OAuth state. Generate: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    token_encryption_key: str = ""
+    intervals_client_id: str = ""
+    intervals_client_secret: str = ""
+    strava_client_id: str = ""
+    strava_client_secret: str = ""
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

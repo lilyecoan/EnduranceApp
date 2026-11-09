@@ -214,6 +214,11 @@ class GarminService:
         }
 
 
+def demo_snapshot() -> dict:
+    """The static demo fixture, tagged "demo" — no Garmin login involved."""
+    return {**GarminService("", "")._mock_data(), "source": "demo"}
+
+
 def get_garmin_service(email: str, password: str) -> GarminService:
     """Construct the Phase 1 demo/fixture Garmin data source.
 

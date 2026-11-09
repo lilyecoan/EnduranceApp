@@ -1,5 +1,7 @@
+import ssl
 from functools import lru_cache
 
+import certifi
 import jwt
 import structlog
 from fastapi import Header, HTTPException, status
@@ -17,7 +19,12 @@ log = structlog.get_logger()
 
 @lru_cache
 def _jwks_client() -> PyJWKClient:
-    return PyJWKClient(f"{settings.clerk_issuer}/.well-known/jwks.json")
+    # Use certifi's CA bundle: python.org macOS builds don't ship with system
+    # roots, so the JWKS fetch otherwise fails with CERTIFICATE_VERIFY_FAILED.
+    return PyJWKClient(
+        f"{settings.clerk_issuer}/.well-known/jwks.json",
+        ssl_context=ssl.create_default_context(cafile=certifi.where()),
+    )
 
 
 def verify_clerk_token(token: str) -> dict:

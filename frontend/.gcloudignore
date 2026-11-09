@@ -1,0 +1,8 @@
+# Files excluded from `gcloud run deploy --source frontend` uploads.
+# .env.production is deliberately NOT excluded: scripts/deploy_gcp.sh writes the
+# public NEXT_PUBLIC_* values there so `next build` inlines them.
+.gcloudignore
+node_modules/
+.next/
+.env.local
+tsconfig.tsbuildinfo

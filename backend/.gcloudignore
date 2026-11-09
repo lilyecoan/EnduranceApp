@@ -1,0 +1,10 @@
+# Files excluded from `gcloud run deploy --source backend` uploads.
+.gcloudignore
+.venv/
+.env
+.env.*
+**/__pycache__/
+*.pyc
+.pytest_cache/
+**/.garmin_tokens/
+tests/

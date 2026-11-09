@@ -6,3 +6,4 @@ from app.models.training import TrainingPlan, Workout
 from app.models.nutrition import NutritionPlan
 from app.models.race import RaceEvent, RaceGoal
 from app.models.recommendation import Recommendation, CoachMessage
+from app.models.connection import DataConnection
