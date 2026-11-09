@@ -31,7 +31,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://ironmind:ironmind_secret@db:5432/ironmind
       GEMINI_API_KEY: ${GEMINI_API_KEY}
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-1.5-pro}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-flash-latest}
       OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY}
       GARMIN_EMAIL: ${GARMIN_EMAIL}
       GARMIN_PASSWORD: ${GARMIN_PASSWORD}

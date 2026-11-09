@@ -5,6 +5,8 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { CoachCard } from "@/components/dashboard/CoachCard";
 import { DemoBanner } from "@/components/dashboard/DemoBanner";
 import { useCoachingPlan } from "@/hooks/useCoachingPlan";
+import { useUnits } from "@/components/units/UnitsProvider";
+import { formatFluidPerHour } from "@/lib/units";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 const Tip = ({ active, payload }: { active?: boolean; payload?: { name: string; value: number; payload: { cal: number } }[] }) => {
@@ -22,6 +24,7 @@ const Tip = ({ active, payload }: { active?: boolean; payload?: { name: string; 
 
 export default function NutritionPage() {
   const { plan, loading } = useCoachingPlan();
+  const { units } = useUnits();
   const n = plan?.nutrition;
 
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
@@ -102,7 +105,7 @@ export default function NutritionPage() {
                   <div className="flex-1">
                     <div className="flex justify-between mb-1">
                       <span className="text-xs font-bold text-white">Fluid</span>
-                      <span className="text-xs text-[#60a5fa] font-black">{n.hydration_ml_per_hour} ml/hr</span>
+                      <span className="text-xs text-[#60a5fa] font-black">{formatFluidPerHour(n.hydration_ml_per_hour, units)}</span>
                     </div>
                   </div>
                 </div>

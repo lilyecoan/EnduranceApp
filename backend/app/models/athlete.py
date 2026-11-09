@@ -68,6 +68,10 @@ class MedicalProfile(Base):
     conditions = Column(JSON, default=list)
     allergies = Column(JSON, default=list)
     notes = Column(Text)
+    # Athlete's own words from onboarding/profile; free text, not parsed.
+    chronic_conditions_text = Column(Text)
+    injuries_text = Column(Text)
+    dietary_restrictions_text = Column(Text)
 
     disclaimer_acknowledged = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

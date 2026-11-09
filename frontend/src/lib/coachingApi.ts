@@ -1,3 +1,5 @@
+export type HealthSource = { topic: string; name: string; url: string };
+
 export type RecoveryOutput = {
   score: number | null;
   status: string;
@@ -72,6 +74,8 @@ export type CoachingPlan = {
   today_workout: Record<string, unknown> | null;
   weekly_plan: Record<string, unknown>[];
   key_messages: string[];
+  health_adjustments: string[];
+  health_sources: HealthSource[];
   confidence: number;
 };
 

@@ -4,16 +4,14 @@ import { useCoachingPlan } from "@/hooks/useCoachingPlan";
 import { daysUntil, weeksUntil } from "@/lib/utils";
 import { CoachCard } from "@/components/dashboard/CoachCard";
 import { Bike, Footprints, Waves } from "lucide-react";
+import { useUnits } from "@/components/units/UnitsProvider";
+import { formatRunPace, formatSwimPace } from "@/lib/units";
 
-function formatMMSS(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.round(seconds % 60);
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
 
 export default function RacePage() {
   const { profile } = useAthleteProfile();
   const { plan, loading } = useCoachingPlan();
+  const { units } = useUnits();
 
   const raceName = profile?.primary_race_name;
   const raceDate = profile?.primary_race_date;
@@ -64,8 +62,8 @@ export default function RacePage() {
             type="info"
             metrics={[
               ...(strategy.bike_watts_target ? [{ label: "Bike Target", value: `${strategy.bike_watts_target}W` }] : []),
-              ...(strategy.run_pace_target ? [{ label: "Run Target", value: `${formatMMSS(strategy.run_pace_target)}/km` }] : []),
-              ...(strategy.swim_pace_per_100m ? [{ label: "Swim Target", value: `${formatMMSS(strategy.swim_pace_per_100m)}/100m` }] : []),
+              ...(strategy.run_pace_target ? [{ label: "Run Target", value: formatRunPace(strategy.run_pace_target, units) }] : []),
+              ...(strategy.swim_pace_per_100m ? [{ label: "Swim Target", value: formatSwimPace(strategy.swim_pace_per_100m, units) }] : []),
             ]}
             agentSource="Race Strategy Agent"
             className="mb-6"
@@ -78,7 +76,7 @@ export default function RacePage() {
                 <Waves className="w-3 h-3" /> Swim
               </div>
               <div className="text-lg font-black text-[#60a5fa]">
-                {strategy.swim_pace_per_100m ? `${formatMMSS(strategy.swim_pace_per_100m)}/100m` : "No swim pace on file"}
+                {strategy.swim_pace_per_100m ? formatSwimPace(strategy.swim_pace_per_100m, units) : "No swim pace on file"}
               </div>
             </div>
             <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-4">
@@ -94,7 +92,7 @@ export default function RacePage() {
                 <Footprints className="w-3 h-3" /> Run
               </div>
               <div className="text-lg font-black text-[#f87171]">
-                {strategy.run_pace_target ? `${formatMMSS(strategy.run_pace_target)}/km` : "No run pace on file"}
+                {strategy.run_pace_target ? formatRunPace(strategy.run_pace_target, units) : "No run pace on file"}
               </div>
             </div>
           </div>

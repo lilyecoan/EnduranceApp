@@ -10,6 +10,7 @@ import {
   startOAuth,
   syncNow,
   uploadFile,
+  type ProviderId,
   type SourceStatus,
 } from "@/lib/connectionsApi";
 
@@ -62,7 +63,16 @@ const primaryCls =
 const inputCls =
   "w-full text-xs bg-[#0d0d0d] border border-[#262626] rounded-lg px-3 py-2 text-white placeholder:text-[#404040] focus:outline-none focus:border-[#404040]";
 
-export default function DataSources() {
+type DataSourcesProps = {
+  /** Render only these sources (e.g. inside onboarding). Defaults to all. */
+  only?: ProviderId[];
+  /** Hide the section heading when embedded in another page. */
+  embedded?: boolean;
+  /** Page the provider sends the athlete back to after connecting. */
+  returnTo?: "/settings" | "/onboarding";
+};
+
+export default function DataSources({ only, embedded = false, returnTo = "/settings" }: DataSourcesProps = {}) {
   const { getToken } = useAuth();
   const [sources, setSources] = useState<SourceStatus[]>([]);
   const [configured, setConfigured] = useState(true);
@@ -124,7 +134,8 @@ export default function DataSources() {
     }
   }
 
-  const byId = (id: string) => sources.find((s) => s.provider === id);
+  const byId = (id: ProviderId) =>
+    only && !only.includes(id) ? undefined : sources.find((s) => s.provider === id);
   const intervals = byId("intervals_icu");
   const stravaSrc = byId("strava");
   const uploads = byId("file_upload");
@@ -196,7 +207,7 @@ export default function DataSources() {
             <>
               <button className={primaryCls} disabled={!!busy || !s.oauth_available || !configured}
                 title={s.oauth_available ? undefined : "Sign-in for this source isn't set up on the server yet"}
-                onClick={() => run(`${id}-oauth`, async () => startOAuth(await getToken(), id))}>
+                onClick={() => run(`${id}-oauth`, async () => startOAuth(await getToken(), id, returnTo))}>
                 <Link className="w-3.5 h-3.5" /> Connect {info.name}
               </button>
               {s.api_key_available && (
@@ -241,11 +252,15 @@ export default function DataSources() {
 
   return (
     <div className="mb-4">
-      <p className="text-[9px] font-bold text-[#525252] uppercase tracking-[0.15em] mb-1">Data sources</p>
-      <p className="text-xs text-[#525252] mb-3">
-        Pick where your training data comes from. You can use more than one; until you connect something, the
-        dashboard shows clearly labeled demo data.
-      </p>
+      {!embedded && (
+        <>
+          <p className="text-[9px] font-bold text-[#525252] uppercase tracking-[0.15em] mb-1">Data sources</p>
+          <p className="text-xs text-[#525252] mb-3">
+            Pick where your training data comes from. You can use more than one; until you connect something, the
+            dashboard shows clearly labeled demo data.
+          </p>
+        </>
+      )}
 
       {message && (
         <div className={`flex items-center gap-2 text-xs rounded-lg px-3 py-2 mb-3 border ${

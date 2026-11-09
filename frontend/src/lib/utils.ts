@@ -13,13 +13,6 @@ export function formatDuration(seconds: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-export function formatPace(secondsPerKm: number): string {
-  const secondsPerMile = secondsPerKm * 1.60934;
-  const m = Math.floor(secondsPerMile / 60);
-  const s = Math.round(secondsPerMile % 60);
-  return `${m}:${String(s).padStart(2, "0")}/mi`;
-}
-
 export function daysUntil(dateStr: string): number {
   const race = new Date(dateStr);
   const today = new Date();

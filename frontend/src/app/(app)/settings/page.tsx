@@ -1,6 +1,7 @@
 "use client";
 import { Clock } from "lucide-react";
 import DataSources from "@/components/settings/DataSources";
+import { UnitsToggle } from "@/components/units/UnitsProvider";
 
 export default function SettingsPage() {
   return (
@@ -10,6 +11,14 @@ export default function SettingsPage() {
         <p className="text-[10px] font-bold text-[#CE0E2D] uppercase tracking-[0.2em] mb-1">Configuration</p>
         <h1 className="text-2xl font-black text-white tracking-tight">Settings</h1>
         <p className="text-sm text-[#525252] mt-0.5">Connect data sources and configure your coaching platform</p>
+      </div>
+
+      <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-5 mb-4 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-[9px] font-bold text-[#525252] uppercase tracking-[0.15em] mb-1">Units</p>
+          <p className="text-xs text-[#737373]">Weight, distances, run and swim paces, fluids and temperature.</p>
+        </div>
+        <UnitsToggle />
       </div>
 
       <DataSources />

@@ -15,7 +15,8 @@ class Settings(BaseSettings):
     gemini_api_key: str = Field(
         default="", validation_alias=AliasChoices("GEMINI_API_KEY", "GOOGLE_API_KEY")
     )
-    gemini_model: str = "gemini-1.5-pro"
+    # Alias tracking a current Flash model: pinned IDs get retired (1.5-pro now 404s).
+    gemini_model: str = "gemini-flash-latest"
 
     openweather_api_key: str = ""
 

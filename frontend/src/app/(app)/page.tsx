@@ -6,6 +6,7 @@ import { ScoreRing } from "@/components/dashboard/ScoreRing";
 import { CoachCard } from "@/components/dashboard/CoachCard";
 import { RaceCountdown } from "@/components/dashboard/RaceCountdown";
 import { DemoBanner } from "@/components/dashboard/DemoBanner";
+import { HealthCard } from "@/components/dashboard/HealthCard";
 import { useGarminData } from "@/hooks/useGarminData";
 import { useAthleteProfile } from "@/hooks/useAthleteProfile";
 import { useCoachingPlan } from "@/hooks/useCoachingPlan";
@@ -92,9 +93,14 @@ export default function OverviewPage() {
               message={plan.key_messages.join(" ")}
               type="info"
               agentSource="Coaching Agents"
-              className="mb-6"
+              className="mb-3"
             />
           )}
+          <HealthCard
+            adjustments={plan.health_adjustments ?? []}
+            sources={plan.health_sources ?? []}
+            className="mb-6"
+          />
         </>
       ) : (
         <div className="mb-6 text-sm text-[#525252]">Unable to load today&apos;s assessment.</div>

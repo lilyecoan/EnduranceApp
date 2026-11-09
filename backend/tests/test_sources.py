@@ -37,8 +37,14 @@ def test_missing_encryption_key_is_a_clear_503(monkeypatch):
 
 
 def test_oauth_state_round_trip():
-    state = crypto.sign_oauth_state("user-1", "strava")
-    assert crypto.verify_oauth_state(state, "strava") == "user-1"
+    state = crypto.sign_oauth_state("user-1", "strava", "/onboarding")
+    claims = crypto.verify_oauth_state(state, "strava")
+    assert claims["sub"] == "user-1" and claims["ret"] == "/onboarding"
+
+
+def test_oauth_state_never_returns_to_arbitrary_url():
+    state = crypto.sign_oauth_state("user-1", "strava", "https://evil.example")
+    assert crypto.verify_oauth_state(state, "strava")["ret"] == "/settings"
 
 
 def test_oauth_state_rejects_other_provider():

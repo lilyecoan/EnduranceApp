@@ -14,6 +14,12 @@ class AthleteContext(BaseModel):
     swim_pace_per_100m: Optional[float] = None
     run_threshold_pace: Optional[float] = None
     has_type1_diabetes: bool = False
+    # Display units the athlete chose; the AI coach writes numbers in these.
+    units: str = "imperial"
+    # Athlete's own free-text answers (onboarding/profile).
+    chronic_conditions: Optional[str] = None
+    injuries: Optional[str] = None
+    dietary_restrictions: Optional[str] = None
     race_date: Optional[date] = None
     race_distance: Optional[str] = None
     race_location: Optional[str] = None
@@ -117,6 +123,10 @@ class CoachingPlan(BaseModel):
     today_workout: Optional[dict] = None
     weekly_plan: List[dict] = []
     key_messages: List[str] = []
+    # Plan changes made for the athlete's conditions/injuries/diet, and the
+    # medical sources consulted ({"topic", "name", "url"}).
+    health_adjustments: List[str] = []
+    health_sources: List[dict] = []
     confidence: float = 0.0
 
 

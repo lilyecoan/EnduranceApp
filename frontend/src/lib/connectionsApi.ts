@@ -48,8 +48,16 @@ async function request<T>(token: string | null, path: string, init: RequestInit 
 
 export const listConnections = (token: string | null) => request<ConnectionsResponse>(token, "");
 
-export async function startOAuth(token: string | null, provider: "intervals_icu" | "strava") {
-  const { url } = await request<{ url: string }>(token, `/${provider}/authorize`, { method: "POST" });
+export async function startOAuth(
+  token: string | null,
+  provider: "intervals_icu" | "strava",
+  returnTo: "/settings" | "/onboarding" = "/settings",
+) {
+  const { url } = await request<{ url: string }>(
+    token,
+    `/${provider}/authorize?return_to=${encodeURIComponent(returnTo)}`,
+    { method: "POST" },
+  );
   window.location.assign(url);
 }
 

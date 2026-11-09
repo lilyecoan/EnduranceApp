@@ -6,16 +6,25 @@ import { useCoachingPlan } from "@/hooks/useCoachingPlan";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { Zap, Heart, Activity, Target, AlertCircle, Info } from "lucide-react";
 import type { AthleteProfile } from "@/lib/profileApi";
-
-function formatMMSS(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.round(seconds % 60);
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
+import { useUnits } from "@/components/units/UnitsProvider";
+import {
+  displayToKg,
+  displayToSecPer100m,
+  displayToSecPerKm,
+  formatRunPace,
+  formatSwimPace,
+  kgToDisplay,
+  runPaceInputLabel,
+  secPer100mToDisplay,
+  secPerKmToDisplay,
+  swimPaceInputLabel,
+  weightUnit,
+  type Units,
+} from "@/lib/units";
 
 type FormState = {
   age: string;
-  weight_kg: string;
+  weight: string;
   ftp_watts: string;
   vo2_max: string;
   max_hr: string;
@@ -23,22 +32,31 @@ type FormState = {
   resting_hr: string;
   swim_pace_per_100m: string;
   run_threshold_pace: string;
-  has_type1_diabetes: boolean;
+  chronic_conditions: string;
+  injuries: string;
+  dietary_restrictions: string;
 };
 
-function toFormState(profile: AthleteProfile | null): FormState {
+/** Form values are in the athlete's display units; converted back to metric on save. */
+function toFormState(profile: AthleteProfile | null, units: Units): FormState {
   const field = (v: number | null) => (v ?? "").toString();
   return {
     age: field(profile?.age ?? null),
-    weight_kg: field(profile?.weight_kg ?? null),
+    weight: field(profile?.weight_kg != null ? kgToDisplay(profile.weight_kg, units) : null),
     ftp_watts: field(profile?.ftp_watts ?? null),
     vo2_max: field(profile?.vo2_max ?? null),
     max_hr: field(profile?.max_hr ?? null),
     lactate_threshold_hr: field(profile?.lactate_threshold_hr ?? null),
     resting_hr: field(profile?.resting_hr ?? null),
-    swim_pace_per_100m: field(profile?.swim_pace_per_100m ?? null),
-    run_threshold_pace: field(profile?.run_threshold_pace ?? null),
-    has_type1_diabetes: profile?.has_type1_diabetes ?? false,
+    swim_pace_per_100m: field(
+      profile?.swim_pace_per_100m != null ? secPer100mToDisplay(profile.swim_pace_per_100m, units) : null,
+    ),
+    run_threshold_pace: field(
+      profile?.run_threshold_pace != null ? secPerKmToDisplay(profile.run_threshold_pace, units) : null,
+    ),
+    chronic_conditions: profile?.chronic_conditions ?? "",
+    injuries: profile?.injuries ?? "",
+    dietary_restrictions: profile?.dietary_restrictions ?? "",
   };
 }
 
@@ -69,7 +87,9 @@ export default function ProfilePage() {
   const { user } = useUser();
   const { profile, loading, save } = useAthleteProfile();
   const { plan } = useCoachingPlan();
-  const [form, setForm] = useState<FormState>(toFormState(null));
+  const { units } = useUnits();
+  const [form, setForm] = useState<FormState>(toFormState(null, units));
+  const [syncedUnits, setSyncedUnits] = useState<Units>(units);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [syncedProfile, setSyncedProfile] = useState<AthleteProfile | null>(null);
@@ -79,8 +99,13 @@ export default function ProfilePage() {
   // in an effect (avoids an extra render-then-fetch cascade).
   if (profile !== syncedProfile) {
     setSyncedProfile(profile);
-    setForm(toFormState(profile));
+    setForm(toFormState(profile, units));
     if (profile && !profile.is_complete) setEditing(true);
+  }
+  // Re-express the form in new units if the athlete switches mid-edit.
+  if (units !== syncedUnits) {
+    setSyncedUnits(units);
+    setForm(toFormState(profile, units));
   }
 
   const handleSave = async () => {
@@ -88,15 +113,19 @@ export default function ProfilePage() {
     const num = (v: string) => (v.trim() === "" ? null : Number(v));
     await save({
       age: num(form.age) as number | null,
-      weight_kg: num(form.weight_kg),
+      weight_kg: form.weight.trim() === "" ? null : displayToKg(Number(form.weight), units),
       ftp_watts: num(form.ftp_watts),
       vo2_max: num(form.vo2_max),
       max_hr: num(form.max_hr) as number | null,
       lactate_threshold_hr: num(form.lactate_threshold_hr) as number | null,
       resting_hr: num(form.resting_hr) as number | null,
-      swim_pace_per_100m: num(form.swim_pace_per_100m),
-      run_threshold_pace: num(form.run_threshold_pace),
-      has_type1_diabetes: form.has_type1_diabetes,
+      swim_pace_per_100m:
+        form.swim_pace_per_100m.trim() === "" ? null : displayToSecPer100m(Number(form.swim_pace_per_100m), units),
+      run_threshold_pace:
+        form.run_threshold_pace.trim() === "" ? null : displayToSecPerKm(Number(form.run_threshold_pace), units),
+      chronic_conditions: form.chronic_conditions,
+      injuries: form.injuries,
+      dietary_restrictions: form.dietary_restrictions,
     });
     setSaving(false);
     setEditing(false);
@@ -140,14 +169,14 @@ export default function ProfilePage() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
             {([
               ["age", "Age"],
-              ["weight_kg", "Weight (kg)"],
+              ["weight", `Weight (${weightUnit(units)})`],
               ["ftp_watts", "FTP (W)"],
               ["vo2_max", "VO₂ Max"],
               ["max_hr", "Max HR (bpm)"],
               ["lactate_threshold_hr", "Threshold HR (bpm)"],
               ["resting_hr", "Resting HR (bpm)"],
-              ["swim_pace_per_100m", "Swim pace (sec/100m)"],
-              ["run_threshold_pace", "Run threshold pace (sec/km)"],
+              ["swim_pace_per_100m", `Swim pace (${swimPaceInputLabel(units)})`],
+              ["run_threshold_pace", `Run threshold pace (${runPaceInputLabel(units)})`],
             ] as [keyof FormState, string][]).map(([key, label]) => (
               <label key={key} className="text-xs text-[#737373]">
                 {label}
@@ -160,14 +189,27 @@ export default function ProfilePage() {
               </label>
             ))}
           </div>
-          <label className="flex items-center gap-2 text-xs text-[#737373] mb-4">
-            <input
-              type="checkbox"
-              checked={form.has_type1_diabetes}
-              onChange={(e) => setForm((f) => ({ ...f, has_type1_diabetes: e.target.checked }))}
-            />
-            Type 1 Diabetes
-          </label>
+          <p className="text-[11px] text-[#525252] mb-3">
+            Your coach plans around what you write here. Mentioning type 1 diabetes turns on glucose-aware fueling
+            guidance{profile?.has_type1_diabetes ? " (currently on)" : ""}.
+          </p>
+          {(
+            [
+              ["chronic_conditions", "Chronic illnesses or medical conditions"],
+              ["injuries", "Current or past injuries"],
+              ["dietary_restrictions", "Dietary restrictions"],
+            ] as const
+          ).map(([key, label]) => (
+            <label key={key} className="block text-xs text-[#737373] mb-3">
+              {label}
+              <textarea
+                value={form[key]}
+                maxLength={2000}
+                onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                className="mt-1 w-full min-h-[60px] resize-y bg-[#151515] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#CE0E2D]/50"
+              />
+            </label>
+          ))}
           <div className="flex gap-3">
             <button
               onClick={handleSave}
@@ -197,14 +239,12 @@ export default function ProfilePage() {
               <StatCard label="Resting HR" value={profile?.resting_hr ?? "—"} unit="bpm" icon={Heart} />
               <StatCard
                 label="Swim Pace"
-                value={profile?.swim_pace_per_100m ? formatMMSS(profile.swim_pace_per_100m) : "—"}
-                unit={profile?.swim_pace_per_100m ? "/100m" : ""}
+                value={profile?.swim_pace_per_100m ? formatSwimPace(profile.swim_pace_per_100m, units) : "—"}
                 icon={Activity}
               />
               <StatCard
                 label="Run Threshold Pace"
-                value={profile?.run_threshold_pace ? formatMMSS(profile.run_threshold_pace) : "—"}
-                unit={profile?.run_threshold_pace ? "/km" : ""}
+                value={profile?.run_threshold_pace ? formatRunPace(profile.run_threshold_pace, units) : "—"}
                 icon={Activity}
               />
               <StatCard label="Max HR" value={profile?.max_hr ?? "—"} unit="bpm" icon={Heart} />

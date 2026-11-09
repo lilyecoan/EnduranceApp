@@ -1,5 +1,7 @@
 export type AthleteProfile = {
   is_complete: boolean;
+  onboarding_completed: boolean;
+  units: "imperial" | "metric";
   full_name: string | null;
   email: string;
   age: number | null;
@@ -14,6 +16,9 @@ export type AthleteProfile = {
   swim_pace_per_100m: number | null;
   run_threshold_pace: number | null;
   has_type1_diabetes: boolean;
+  chronic_conditions: string | null;
+  injuries: string | null;
+  dietary_restrictions: string | null;
   primary_race_name: string | null;
   primary_race_date: string | null;
   primary_race_distance: string | null;
@@ -48,6 +53,21 @@ export async function updateProfile(
         "Content-Type": "application/json",
       },
       body: JSON.stringify(updates),
+    });
+    if (!res.ok) throw new Error(`Profile API ${res.status}`);
+    return (await res.json()) as AthleteProfile;
+  } catch {
+    return null;
+  }
+}
+
+/** Mark first-run onboarding finished (or skipped) so it isn't shown again. */
+export async function completeOnboarding(token: string | null): Promise<AthleteProfile | null> {
+  if (!token) return null;
+  try {
+    const res = await fetch(`${BACKEND}/api/v1/profile/onboarding/complete`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) throw new Error(`Profile API ${res.status}`);
     return (await res.json()) as AthleteProfile;

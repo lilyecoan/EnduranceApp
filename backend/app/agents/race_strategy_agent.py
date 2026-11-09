@@ -50,7 +50,7 @@ def race_strategy_agent(state: AgentState) -> AgentState:
             f"Target bike power: {target_bike_watts}W (~76% FTP for 70.3)",
             "Negative split strategy: first half of run conservatively",
             "Practice race nutrition in all long sessions NOW",
-            "Heat: add 15-20% fluid per hour if temp >25°C",
+            "Heat: add 15-20% fluid per hour if temp >25°C (77°F)",
         ]
         if ctx.has_type1_diabetes:
             key_notes.append("T1D: Agree race-day glucose strategy with your care team well in advance")

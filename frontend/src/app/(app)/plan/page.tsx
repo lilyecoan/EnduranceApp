@@ -3,6 +3,15 @@ import { mockWeeklyPlan } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
 import { Bike, Footprints, Waves, Coffee, Dumbbell } from "lucide-react";
 import { DemoBanner } from "@/components/dashboard/DemoBanner";
+import { useUnits } from "@/components/units/UnitsProvider";
+import {
+  formatDistance,
+  formatFluidPerHour,
+  formatShortDistance,
+  milesToMeters,
+  ozToMl,
+  yardsToMeters,
+} from "@/lib/units";
 
 const sportIcon: Record<string, React.ElementType> = {
   Run: Footprints, Swim: Waves, Bike: Bike,
@@ -24,6 +33,7 @@ const intensityBadge: Record<string, string> = {
 };
 
 export default function PlanPage() {
+  const { units } = useUnits();
   const weekTSS   = mockWeeklyPlan.reduce((s, d) => s + (d.workout?.tss ?? 0) + (d.strength?.tss ?? 0), 0);
   const weekHours = mockWeeklyPlan.reduce((s, d) => s + (d.workout?.duration_min ?? 0) + (d.strength?.duration_min ?? 0), 0) / 60;
 
@@ -124,7 +134,7 @@ export default function PlanPage() {
                     {"fueling" in w && w.fueling && (
                       <div className="flex gap-4 text-[9px] text-[#525252] bg-[#151515] rounded-lg px-3 py-2 mt-2 font-medium">
                         <span>🍬 {w.fueling.carbs_per_hour}g/hr GF carbs</span>
-                        <span>💧 {w.fueling.water_oz_per_hour} oz/hr</span>
+                        <span>💧 {formatFluidPerHour(ozToMl(w.fueling.water_oz_per_hour), units)}</span>
                         <span>🧂 {w.fueling.sodium_mg_per_hour}mg Na/hr</span>
                       </div>
                     )}
@@ -138,13 +148,13 @@ export default function PlanPage() {
                     </div>
                     {"distance_yards" in w && w.distance_yards && (
                       <div>
-                        <div className="text-sm font-black text-white">{w.distance_yards.toLocaleString()}yd</div>
+                        <div className="text-sm font-black text-white">{formatShortDistance(yardsToMeters(w.distance_yards), units)}</div>
                         <div className="text-[9px] text-[#404040] font-bold uppercase">Dist</div>
                       </div>
                     )}
                     {"distance_mi" in w && w.distance_mi && (
                       <div>
-                        <div className="text-sm font-black text-white">{w.distance_mi}mi</div>
+                        <div className="text-sm font-black text-white">{formatDistance(milesToMeters(w.distance_mi), units)}</div>
                         <div className="text-[9px] text-[#404040] font-bold uppercase">Dist</div>
                       </div>
                     )}

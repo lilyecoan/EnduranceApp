@@ -93,21 +93,18 @@ _cache: dict[str, tuple[str, datetime]] = {}
 CACHE_DURATION = timedelta(hours=12)
 
 
-async def fetch_reference(key: str) -> str:
-    """Fetch reference content, using cache or hardcoded knowledge as fallback."""
-    if key not in REFERENCE_URLS:
-        return ""
-
+async def fetch_page_text(url: str) -> str:
+    """Fetch a page's readable text (cached 12h). Returns "" on any failure."""
     now = datetime.now()
-    if key in _cache:
-        content, cached_at = _cache[key]
+    if url in _cache:
+        content, cached_at = _cache[url]
         if now - cached_at < CACHE_DURATION:
             return content
 
     try:
         async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
             headers = {"User-Agent": "Mozilla/5.0 IronMind-AI/1.0 (endurance coaching research)"}
-            resp = await client.get(REFERENCE_URLS[key], headers=headers)
+            resp = await client.get(url, headers=headers)
             resp.raise_for_status()
 
             try:
@@ -120,13 +117,20 @@ async def fetch_reference(key: str) -> str:
             except ImportError:
                 content = resp.text[:8000]
 
-            _cache[key] = (content, now)
-            log.info("reference_fetched", key=key, chars=len(content))
+            _cache[url] = (content, now)
+            log.info("reference_fetched", url=url, chars=len(content))
             return content
 
     except Exception as e:
-        log.warning("reference_fetch_failed", key=key, error=str(e), using_fallback=True)
-        return REFERENCE_KNOWLEDGE.get(key, "")
+        log.warning("reference_fetch_failed", url=url, error=str(e))
+        return ""
+
+
+async def fetch_reference(key: str) -> str:
+    """Fetch reference content, using cache or hardcoded knowledge as fallback."""
+    if key not in REFERENCE_URLS:
+        return ""
+    return await fetch_page_text(REFERENCE_URLS[key]) or REFERENCE_KNOWLEDGE.get(key, "")
 
 
 async def get_all_coaching_context() -> str:

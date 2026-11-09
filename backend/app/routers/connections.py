@@ -13,7 +13,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.crypto import decrypt, encrypt, sign_oauth_state, verify_oauth_state
+from app.core.crypto import RETURN_PATHS, decrypt, encrypt, sign_oauth_state, verify_oauth_state
 from app.core.security import get_current_user
 from app.db.base import get_db
 from app.models.activity import Activity
@@ -40,8 +40,9 @@ def _redirect_uri(provider: str) -> str:
     return f"{settings.backend_public_url.rstrip('/')}/api/v1/connections/{provider}/callback"
 
 
-def _back_to_app(**params: str) -> RedirectResponse:
-    return RedirectResponse(f"{settings.frontend_url.rstrip('/')}/settings?{urlencode(params)}")
+def _back_to_app(path: str = "/settings", **params: str) -> RedirectResponse:
+    path = path if path in RETURN_PATHS else "/settings"
+    return RedirectResponse(f"{settings.frontend_url.rstrip('/')}{path}?{urlencode(params)}")
 
 
 async def _get_connection(db: AsyncSession, user_id, provider: str):
@@ -108,12 +109,16 @@ async def list_connections(current_user: User = Depends(get_current_user), db: A
 
 
 @router.post("/{provider}/authorize")
-async def start_oauth(provider: Provider, current_user: User = Depends(get_current_user)):
+async def start_oauth(
+    provider: Provider,
+    return_to: Literal["/settings", "/onboarding"] = "/settings",
+    current_user: User = Depends(get_current_user),
+):
     """Return the provider consent URL; the browser navigates there."""
     client_id, _ = _oauth_config(provider)
     if not client_id:
         raise HTTPException(status_code=503, detail=f"{provider} sign-in is not configured on this server yet.")
-    state = sign_oauth_state(str(current_user.id), provider)
+    state = sign_oauth_state(str(current_user.id), provider, return_to)
     module = intervals_icu if provider == intervals_icu.SOURCE else strava
     return {"url": module.authorize_url(client_id, _redirect_uri(provider), state)}
 
@@ -129,9 +134,11 @@ async def oauth_callback(
 ):
     """Provider redirect target. The athlete is identified by the signed state,
     since this browser redirect carries no bearer token."""
+    claims = verify_oauth_state(state, provider)
+    back = claims["ret"]
     if error or not code:
-        return _back_to_app(source=provider, error=error or "cancelled")
-    user_id = uuid.UUID(verify_oauth_state(state, provider))
+        return _back_to_app(back, source=provider, error=error or "cancelled")
+    user_id = uuid.UUID(claims["sub"])
     client_id, client_secret = _oauth_config(provider)
     try:
         if provider == intervals_icu.SOURCE:
@@ -146,7 +153,7 @@ async def oauth_callback(
             # Strava reports the granted scopes on the redirect, and athletes
             # can untick activity access on its consent screen.
             if "activity:read" not in scope:
-                return _back_to_app(source=provider, error="activity_permission_not_granted")
+                return _back_to_app(back, source=provider, error="activity_permission_not_granted")
             token = await strava.exchange_code(client_id, client_secret, code)
             fields = {
                 "auth_type": "oauth",
@@ -158,11 +165,11 @@ async def oauth_callback(
             }
     except httpx.HTTPError as exc:
         log.warning("oauth_exchange_failed", provider=provider, error=str(exc))
-        return _back_to_app(source=provider, error="token_exchange_failed")
+        return _back_to_app(back, source=provider, error="token_exchange_failed")
 
     conn = await _save_connection(db, user_id, provider, **fields)
     await sync.sync_connection(db, conn)
-    return _back_to_app(source=provider, connected="1")
+    return _back_to_app(back, source=provider, connected="1")
 
 
 class IntervalsApiKeyRequest(BaseModel):

@@ -15,6 +15,11 @@ class User(Base):
     full_name = Column(String)
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
+    # Set when the athlete finishes or skips first-run onboarding.
+    onboarding_completed_at = Column(DateTime(timezone=True))
+    # Display units: "imperial" (lb, mi, min/mi, yd, oz) or "metric". Data is
+    # always stored metric; this only changes what the athlete sees.
+    units = Column(String, nullable=False, server_default="imperial", default="imperial")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
