@@ -1,3 +1,74 @@
+commit 8616d5db1099393063b58c7b0012c6a1ed08dd80
+Author: Lily <lilyecoan@gmail.com>
+Date:   2026-11-09 20:12:49 -0600
+
+Phase 2: save session transcripts
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+----------------------------------------
+commit d242937d3ba43d0c54cd13f75411bf790447e0ca
+Author: Lily <lilyecoan@gmail.com>
+Date:   2026-11-09 15:53:48 -0600
+
+Onboarding, health-aware coaching, units toggle; fix retired Gemini model
+
+- First-run onboarding (/onboarding): basics, then a device-specific guide
+  (Garmin via Intervals.icu or export upload, Apple Health export, other
+  watches, Strava) with the data-source actions embedded. New users are
+  redirected until they finish or skip; OAuth returns to an allowlisted page.
+- Free-text chronic conditions, injuries and dietary restrictions. Type 1
+  diabetes is detected from the text (negation-aware) instead of a toggle.
+- The AI coach plans around those notes, grounded in curated AAOS OrthoInfo
+  / MedlinePlus sources plus live MedlinePlus search for anything else;
+  plans return health adjustments and the sources used (dashboard card).
+  Curated guidance is shown if the AI is unavailable.
+- Customary/metric display toggle saved per account: weight, run and swim
+  paces, distances, fluids, temperature; the AI writes in the chosen units.
+  Data stays stored metric.
+- Default Gemini model gemini-1.5-pro was retired (404), which broke every
+  AI coaching message; default is now the gemini-flash-latest alias.
+- Migrations 0003-0005 (onboarding flag, health text, units).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+----------------------------------------
+commit bd0617fd1b00a49c9f3bc19350ae130075bf5fca
+Author: Lily <lilyecoan@gmail.com>
+Date:   2026-11-09 12:11:34 -0600
+
+Data sources (Intervals.icu, Strava, file upload), Cloud Run deploy, auth fix
+
+- Athletes pick their data source on Settings: Intervals.icu (OAuth or
+  personal API key; workouts + HRV/sleep/resting HR/weight/CTL/ATL),
+  Strava (workouts only, excluded from AI input per Strava's API terms),
+  or file upload (.fit, zips incl. Garmin "Export Your Data", Apple
+  Health export). Provider tokens are Fernet-encrypted; OAuth state is
+  signed and user-bound; disconnect revokes access and deletes data.
+- Dashboard/coaching snapshot now comes from the athlete's own data and
+  never falls back to the shared GARMIN_EMAIL login (which served one
+  person's real Garmin data to every user).
+- Migration 0002: data_connections, per-source recovery records,
+  per-user activity de-duplication (safe on fresh and existing DBs).
+- Fix Clerk JWKS fetch failing with CERTIFICATE_VERIFY_FAILED on macOS
+  Python by using certifi's CA bundle (cause of the dashboard 401s).
+- Cloud Run deploy script (secrets in Secret Manager, Neon Postgres);
+  Docker installs from requirements.lock.txt, since requirements.txt pins
+  were stale and unresolvable.
+- Auto-export redacted session transcripts via a Stop hook.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+----------------------------------------
+commit bf744cee72a12d65ef098639ea43d717379dcbd6
+Author: Lily <lilyecoan@gmail.com>
+Date:   2026-11-01 19:54:40 -0600
+
+Update commit-log.txt to include Phase 1 deliverables commit
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+----------------------------------------
 commit 90f15e0aa36de8ee0540251becd66b23254e866f
 Author: Lily <lilyecoan@gmail.com>
 Date:   2026-11-01 19:54:40 -0600
