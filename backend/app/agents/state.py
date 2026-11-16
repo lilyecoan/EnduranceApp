@@ -20,6 +20,10 @@ class AthleteContext(BaseModel):
     chronic_conditions: Optional[str] = None
     injuries: Optional[str] = None
     dietary_restrictions: Optional[str] = None
+    # Last week of the athlete's own workout logs (what they did, effort, notes).
+    recent_workouts: Optional[str] = None
+    # Last few daily check-ins (sleep quality, soreness, energy, notes).
+    recent_checkins: Optional[str] = None
     race_date: Optional[date] = None
     race_distance: Optional[str] = None
     race_location: Optional[str] = None

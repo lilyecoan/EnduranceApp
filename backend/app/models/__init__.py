@@ -7,3 +7,4 @@ from app.models.nutrition import NutritionPlan
 from app.models.race import RaceEvent, RaceGoal
 from app.models.recommendation import Recommendation, CoachMessage
 from app.models.connection import DataConnection
+from app.models.workout_log import WorkoutLog

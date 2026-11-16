@@ -61,3 +61,37 @@ export const ozToMl = (oz: number) => oz * ML_PER_OZ;
 // --- temperature (for weather displays) -------------------------------------
 export const formatTemp = (celsius: number, u: Units) =>
   u === "imperial" ? `${Math.round((celsius * 9) / 5 + 32)}°F` : `${Math.round(celsius)}°C`;
+
+// --- totals and elevation -------------------------------------------------------
+export const formatFluid = (ml: number, u: Units) =>
+  u === "imperial" ? `${Math.round(ml / ML_PER_OZ)} oz` : ml >= 1000 ? `${round1(ml / 1000)} L` : `${Math.round(ml)} ml`;
+const M_PER_FT = 0.3048;
+export const formatElevation = (meters: number, u: Units) =>
+  u === "imperial" ? `${Math.round(meters / M_PER_FT).toLocaleString()} ft` : `${Math.round(meters).toLocaleString()} m`;
+
+// --- distance inputs (long: mi/km, short: yd/m) ------------------------------------
+export const distanceUnit = (u: Units) => (u === "imperial" ? "mi" : "km");
+export const shortDistanceUnit = (u: Units) => (u === "imperial" ? "yd" : "m");
+export const metersToDisplayDistance = (m: number, u: Units) => round1(u === "imperial" ? m / M_PER_MI : m / 1000);
+export const displayDistanceToMeters = (v: number, u: Units) => (u === "imperial" ? v * M_PER_MI : v * 1000);
+export const metersToDisplayShort = (m: number, u: Units) => Math.round(u === "imperial" ? m / M_PER_YD : m);
+export const displayShortToMeters = (v: number, u: Units) => (u === "imperial" ? v * M_PER_YD : v);
+
+/**
+ * Server text can carry unit tokens — {temp:C}, {ml:ML}, {m:METERS} — so
+ * sentences built on the backend still show in the athlete's units.
+ */
+export function renderUnitTokens(text: string, u: Units): string {
+  return text.replace(/\{(temp|ml|m):(-?[\d.]+)\}/g, (_, kind: string, raw: string) => {
+    const n = Number(raw);
+    if (kind === "temp") return formatTemp(n, u);
+    if (kind === "ml") return formatFluid(n, u);
+    return formatElevation(n, u);
+  });
+}
+
+/** "13:05" → "1:05 PM" */
+export function formatClock(hhmm: string): string {
+  const [h, m] = hhmm.split(":").map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+}

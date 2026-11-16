@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Float, Integer, DateTime, ForeignKey, Date, JSON, String, UniqueConstraint
+from sqlalchemy import Column, Float, Integer, DateTime, ForeignKey, Date, JSON, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -54,5 +54,11 @@ class RecoveryMetric(Base):
     # Fitness/fatigue as computed by the source (e.g. Intervals.icu), not by us.
     ctl = Column(Float)
     atl = Column(Float)
+
+    # The athlete's own daily check-in (source="manual"): 1-5 scales and notes.
+    sleep_quality = Column(Integer)
+    soreness = Column(Integer)
+    energy = Column(Integer)
+    checkin_notes = Column(Text)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())

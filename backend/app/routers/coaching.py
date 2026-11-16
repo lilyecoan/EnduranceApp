@@ -15,6 +15,7 @@ from app.models.recommendation import Recommendation
 from app.models.training import Workout
 from app.models.user import User
 from app.services.snapshot import build_snapshot
+from app.services.workout_logs import recent_checkin_summary, recent_log_notes
 from app.services.profile_service import get_or_create_athlete_profile, get_or_create_medical_profile
 
 router = APIRouter(prefix="/coaching", tags=["coaching"])
@@ -75,6 +76,8 @@ async def _build_athlete_context(
         chronic_conditions=medical.chronic_conditions_text,
         injuries=medical.injuries_text,
         dietary_restrictions=medical.dietary_restrictions_text,
+        recent_workouts=await recent_log_notes(db, current_user.id),
+        recent_checkins=await recent_checkin_summary(db, current_user.id),
         race_date=race_date,
         race_distance=race_distance,
         race_location=primary_race.location if primary_race else None,
@@ -126,6 +129,9 @@ async def run_coaching_pipeline(
 
     ctx = await _build_athlete_context(req, db, current_user)
     scheduled_workout = await _load_scheduled_workout(db, current_user)
+    # End the read transaction before the slow AI pipeline so it doesn't hold
+    # locks (an abandoned run once left one open for days, blocking migrations).
+    await db.commit()
 
     initial_state: AgentState = {
         "athlete_context": ctx,

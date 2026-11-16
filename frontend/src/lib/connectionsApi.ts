@@ -1,6 +1,6 @@
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000";
 
-export type ProviderId = "intervals_icu" | "strava" | "file_upload";
+export type ProviderId = "intervals_icu" | "strava" | "health_auto_export" | "file_upload";
 
 export type SourceStatus = {
   provider: ProviderId;
@@ -13,6 +13,8 @@ export type SourceStatus = {
   auth_type?: "oauth" | "api_key" | null;
   last_sync_at?: string | null;
   last_sync_error?: string | null;
+  /** Health Auto Export: where the iPhone app should send data. */
+  ingest_url?: string;
 };
 
 export type ConnectionsResponse = { sources: SourceStatus[]; configured: boolean };
@@ -71,7 +73,7 @@ export const connectIntervalsApiKey = (token: string | null, athleteId: string, 
 export const syncNow = (token: string | null, provider: "intervals_icu" | "strava") =>
   request<SyncResult>(token, `/${provider}/sync`, { method: "POST" });
 
-export const disconnect = (token: string | null, provider: "intervals_icu" | "strava") =>
+export const disconnect = (token: string | null, provider: "intervals_icu" | "strava" | "health_auto_export") =>
   request<void>(token, `/${provider}`, { method: "DELETE" });
 
 export function uploadFile(token: string | null, file: File) {
@@ -82,3 +84,7 @@ export function uploadFile(token: string | null, file: File) {
 
 export const deleteUploadedData = (token: string | null) =>
   request<void>(token, "/file_upload/data", { method: "DELETE" });
+
+/** New Health Auto Export token (shown once; replaces any previous one). */
+export const createIngestToken = (token: string | null) =>
+  request<{ token: string; url: string }>(token, "/health_auto_export/token", { method: "POST" });

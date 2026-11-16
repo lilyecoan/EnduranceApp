@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, Integer, DateTime, ForeignKey, JSON, Date, Text, Enum, Boolean
+from sqlalchemy import Column, String, Float, Integer, DateTime, ForeignKey, JSON, Date, Text, Enum, Boolean, Time
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -14,6 +14,10 @@ class RaceDistance(str, enum.Enum):
     full_iron = "full_iron"
     half_marathon = "half_marathon"
     marathon = "marathon"
+    five_k = "five_k"
+    ten_k = "ten_k"
+    ultramarathon = "ultramarathon"
+    other = "other"
 
 
 class RaceEvent(Base):
@@ -36,6 +40,19 @@ class RaceEvent(Base):
     is_wetsuit_legal = Column(Boolean)
 
     is_primary = Column(Boolean, default=True)
+
+    # Race-day details: the official race page the athlete pasted, what was
+    # read from it, and where/when the race starts (local clock time).
+    race_url = Column(String)
+    start_time = Column(Time)
+    goal_finish_minutes = Column(Integer)
+    latitude = Column(Float)
+    longitude = Column(Float)
+    timezone = Column(String)
+    venue_elevation_m = Column(Float)
+    course_info = Column(JSON)
+    nutrition_plan = Column(JSON)
+    nutrition_plan_generated_at = Column(DateTime(timezone=True))
 
     user = relationship("User", back_populates="race_events")
     goals = relationship("RaceGoal", back_populates="race_event")

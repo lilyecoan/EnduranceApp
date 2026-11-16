@@ -1,9 +1,10 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { Activity, CheckCircle, Key, Link, RefreshCw, Trash2, Upload, AlertTriangle } from "lucide-react";
+import { Activity, CheckCircle, Copy, Key, Link, RefreshCw, Smartphone, Trash2, Upload, AlertTriangle } from "lucide-react";
 import {
   connectIntervalsApiKey,
+  createIngestToken,
   deleteUploadedData,
   disconnect,
   listConnections,
@@ -17,13 +18,18 @@ import {
 const PROVIDER_INFO = {
   intervals_icu: {
     name: "Intervals.icu",
-    blurb: "Connect your Garmin to Intervals.icu once, then link it here. Brings in workouts plus HRV, sleep, resting HR, weight and fitness/fatigue.",
-    badge: "Recommended",
+    blurb: "Connect your watch to Intervals.icu once, then link it here. Brings in workouts plus HRV, sleep, resting HR, weight and fitness/fatigue. Garmin has recently limited what Intervals.icu may pass on to other apps, so Garmin data may not come through this way.",
+    badge: null,
   },
   strava: {
     name: "Strava",
     blurb: "Workouts only (no sleep or HRV). Strava's terms don't allow its data to be used with AI, so Strava workouts are shown to you but never sent to your AI coach.",
     badge: null,
+  },
+  health_auto_export: {
+    name: "Apple Health (automatic)",
+    blurb: "Sends workouts, sleep, resting HR, HRV, steps and weight from your iPhone automatically, using the Health Auto Export app. Garmin users on iPhone: turn on Garmin Connect's Apple Health sharing and your Garmin workouts, sleep and steps come through this way too (Garmin doesn't share HRV).",
+    badge: "iPhone",
   },
   file_upload: {
     name: "Upload files",
@@ -83,6 +89,8 @@ export default function DataSources({ only, embedded = false, returnTo = "/setti
   const [athleteId, setAthleteId] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [confirming, setConfirming] = useState<string | null>(null);
+  const [ingest, setIngest] = useState<{ token: string; url: string } | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
@@ -139,6 +147,102 @@ export default function DataSources({ only, embedded = false, returnTo = "/setti
   const intervals = byId("intervals_icu");
   const stravaSrc = byId("strava");
   const uploads = byId("file_upload");
+  const hae = byId("health_auto_export");
+
+  async function copy(label: string, text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(label);
+      setTimeout(() => setCopied(null), 2000);
+    } catch {
+      setCopied(null);
+    }
+  }
+
+  function haeCard(s: SourceStatus) {
+    const info = PROVIDER_INFO.health_auto_export;
+    const url = ingest?.url ?? s.ingest_url ?? "";
+    const field = (label: string, value: string, secret = false) => (
+      <div className="flex items-center gap-2">
+        <span className="w-20 flex-shrink-0 text-[10px] text-[#525252]">{label}</span>
+        <code className={`flex-1 min-w-0 truncate text-[11px] bg-[#0d0d0d] border border-[#262626] rounded px-2 py-1 ${secret ? "text-[#fbbf24]" : "text-[#d4d4d4]"}`}>{value}</code>
+        <button className={buttonCls} onClick={() => copy(label, value)} aria-label={`Copy ${label}`}>
+          <Copy className="w-3 h-3" /> {copied === label ? "Copied" : "Copy"}
+        </button>
+      </div>
+    );
+    return (
+      <div key="health_auto_export" className="rounded-xl border border-[#1e1e1e] bg-[#111] p-5 mb-3">
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#2563eb]/10 flex items-center justify-center flex-shrink-0">
+              <Smartphone className="w-4 h-4 text-[#60a5fa]" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-white flex items-center gap-2">
+                {info.name}
+                <span className="text-[9px] font-bold text-[#CE0E2D] bg-[#CE0E2D]/10 px-2 py-0.5 rounded uppercase tracking-wider">{info.badge}</span>
+              </h3>
+              {s.connected ? <Counts s={s} /> : null}
+            </div>
+          </div>
+          <StatusPill connected={s.connected} />
+        </div>
+        <p className="text-[11px] text-[#737373] mb-3">{info.blurb}</p>
+        {s.connected && (
+          <p className="text-[10px] text-[#525252] mb-3">
+            Last data received {formatWhen(s.last_sync_at)}
+          </p>
+        )}
+        {s.last_sync_error && (
+          <p className="flex items-center gap-1.5 text-[11px] text-[#f87171] mb-3">
+            <AlertTriangle className="w-3.5 h-3.5" /> {s.last_sync_error}
+          </p>
+        )}
+
+        {ingest && (
+          <div className="space-y-1.5 mb-3 rounded-lg border border-[#d97706]/30 bg-[#d97706]/5 p-3">
+            {field("URL", url)}
+            {field("Header key", "Authorization")}
+            {field("Header value", `Bearer ${ingest.token}`, true)}
+            <p className="text-[10px] text-[#fbbf24]">Copy the header value now. It won&apos;t be shown again; treat it like a password.</p>
+          </div>
+        )}
+
+        <ol className="list-decimal pl-4 space-y-1 text-[11px] text-[#a3a3a3] mb-3">
+          <li>Install <b>Health Auto Export – JSON+CSV</b> on your iPhone. Automatic sending needs its Premium plan (7-day free trial).</li>
+          <li>Click <b>{s.connected ? "New token" : "Get my token"}</b> below.</li>
+          <li>In the app: <b>Automations → New → REST API</b>. Paste the URL. Under <b>HTTP Headers</b>, add the header key and value.</li>
+          <li>Set <b>Export Format: JSON</b>. Make one automation for <b>Health Metrics</b> (resting heart rate, HRV, sleep analysis, step count, weight) and one for <b>Workouts</b> (Version 2). Turn on Batch Requests for big backfills.</li>
+          <li>Run it once with <b>Manual Export</b> to send your history. After that it sends in the background (iOS decides exactly when; your phone must be unlocked).</li>
+        </ol>
+
+        <div className="flex flex-wrap gap-2">
+          <button className={s.connected ? buttonCls : primaryCls} disabled={!!busy || !configured}
+            onClick={() => run("hae-token", async () => {
+              setIngest(await createIngestToken(await getToken()));
+              return s.connected ? "New token created. Update the header in Health Auto Export; the old token no longer works." : undefined;
+            })}>
+            <Key className="w-3.5 h-3.5" /> {s.connected ? "New token" : "Get my token"}
+          </button>
+          {s.connected && (confirming === "health_auto_export" ? (
+            <button className={primaryCls} disabled={!!busy}
+              onClick={() => run("hae-disconnect", async () => {
+                await disconnect(await getToken(), "health_auto_export");
+                setIngest(null);
+                return "Apple Health disconnected and its data deleted.";
+              })}>
+              <Trash2 className="w-3.5 h-3.5" /> Confirm: disconnect &amp; delete data
+            </button>
+          ) : (
+            <button className={buttonCls} disabled={!!busy} onClick={() => setConfirming("health_auto_export")}>
+              <Trash2 className="w-3.5 h-3.5" /> Disconnect
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   function oauthCard(s: SourceStatus | undefined, id: "intervals_icu" | "strava") {
     const info = PROVIDER_INFO[id];
@@ -280,6 +384,7 @@ export default function DataSources({ only, embedded = false, returnTo = "/setti
 
       {oauthCard(intervals, "intervals_icu")}
       {oauthCard(stravaSrc, "strava")}
+      {hae && haeCard(hae)}
 
       {uploads && (
         <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-5">

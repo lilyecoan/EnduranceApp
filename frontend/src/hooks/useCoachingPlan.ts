@@ -3,7 +3,8 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { runCoachingPipeline, type CoachingPlan } from "@/lib/coachingApi";
 
-export function useCoachingPlan() {
+/** `refreshKey`: change it to re-run today's plan (e.g. after a check-in). */
+export function useCoachingPlan(refreshKey = 0) {
   const { getToken } = useAuth();
   const [plan, setPlan] = useState<CoachingPlan | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
@@ -25,7 +26,7 @@ export function useCoachingPlan() {
     return () => {
       cancelled = true;
     };
-  }, [getToken]);
+  }, [getToken, refreshKey]);
 
   return { plan, errors, loading };
 }

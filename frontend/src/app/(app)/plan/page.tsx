@@ -1,7 +1,13 @@
 "use client";
+import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { mockWeeklyPlan } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
-import { Bike, Footprints, Waves, Coffee, Dumbbell } from "lucide-react";
+import { Bike, Footprints, Waves, Coffee, Dumbbell, CheckCircle2, NotebookPen } from "lucide-react";
+import { LoadChart } from "@/components/plan/LoadChart";
+import { WorkoutLogPanel } from "@/components/plan/WorkoutLogPanel";
+import { listLogs, type WorkoutLog } from "@/lib/trainingApi";
+import { adjustWeek, buildWeek, isoDate, type SessionState } from "@/lib/weekPlan";
 import { DemoBanner } from "@/components/dashboard/DemoBanner";
 import { useUnits } from "@/components/units/UnitsProvider";
 import {
@@ -32,19 +38,92 @@ const intensityBadge: Record<string, string> = {
   "Zone 2–3": "bg-[#134e4a] text-[#34d399] border-[#059669]/30",
 };
 
+function SessionStatus({ state, onLog }: { state: SessionState | undefined; onLog: () => void }) {
+  const { units } = useUnits();
+  if (!state) return null;
+  const { log, adjusted, notLogged, session } = state;
+  const swim = session.sport === "Swim";
+  const dist = (m: number) => (swim ? formatShortDistance(m, units) : formatDistance(m, units));
+  return (
+    <div className="flex flex-wrap items-center gap-2 mt-2">
+      {log ? (
+        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4ade80] bg-[#14532d]/40 px-2 py-0.5 rounded">
+          <CheckCircle2 className="w-3 h-3" />
+          {log.status === "skipped" ? "Skipped" : `Done${log.actual_duration_min ? ` · ${Math.round(log.actual_duration_min)}m` : ""}${log.actual_distance_m ? ` · ${dist(log.actual_distance_m)}` : ""}${log.rpe ? ` · RPE ${log.rpe}` : ""} · load ${log.load}`}
+        </span>
+      ) : adjusted ? (
+        <span className="text-[10px] font-bold text-white bg-[#1a1a1a] border border-dashed border-[#e5484d]/60 px-2 py-0.5 rounded">
+          Adjusted: {adjusted.duration_min}m{adjusted.distance_m ? ` · ${dist(adjusted.distance_m)}` : ""} · load {adjusted.load}
+        </span>
+      ) : notLogged ? (
+        <span className="text-[10px] text-[#525252]">Not logged</span>
+      ) : null}
+      {log?.notes && <span className="text-[10px] text-[#737373] italic truncate max-w-[260px]">“{log.notes}”</span>}
+      {(log || notLogged || state.session.date <= isoDate(new Date())) && (
+        <button onClick={onLog} className="inline-flex items-center gap-1 text-[10px] font-bold text-[#60a5fa] hover:underline">
+          <NotebookPen className="w-3 h-3" /> {log ? "Edit log" : "Log it"}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function PlanPage() {
   const { units } = useUnits();
+  const { getToken, isSignedIn } = useAuth();
+  const [today] = useState(() => new Date());
+  const todayIso = isoDate(today);
+  const { dates, sessions } = useMemo(() => buildWeek(today), [today]);
+  const [logs, setLogs] = useState<WorkoutLog[]>([]);
+  const [logError, setLogError] = useState(false);
+  const [selectedKey, setSelectedKey] = useState(
+    () => [...sessions].reverse().find((s) => s.date <= todayIso)?.key ?? "extra",
+  );
+
+  useEffect(() => {
+    if (!isSignedIn) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const result = await listLogs(await getToken(), dates[0], dates[6]);
+        if (!cancelled) setLogs(result);
+      } catch {
+        if (!cancelled) setLogError(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isSignedIn, getToken, dates]);
+
+  const week = useMemo(() => adjustWeek(dates, sessions, logs, todayIso), [dates, sessions, logs, todayIso]);
+  const stateFor = (key: string) => week.states.find((st) => st.session.key === key);
+
+  function onLogChanged(log: WorkoutLog | null, removedId?: string) {
+    setLogs((prev) => {
+      const rest = prev.filter((l) => l.id !== removedId && (!log || `${l.date}:${l.slot}` !== `${log.date}:${log.slot}`));
+      return log ? [...rest, log] : rest;
+    });
+  }
+
+  function openLog(key: string) {
+    setSelectedKey(key);
+    document.getElementById("workout-log")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   const weekTSS   = mockWeeklyPlan.reduce((s, d) => s + (d.workout?.tss ?? 0) + (d.strength?.tss ?? 0), 0);
   const weekHours = mockWeeklyPlan.reduce((s, d) => s + (d.workout?.duration_min ?? 0) + (d.strength?.duration_min ?? 0), 0) / 60;
 
   return (
-    <div className="p-6 max-w-5xl">
+    <div className="p-6 max-w-7xl">
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
           <p className="text-[10px] font-bold text-[#CE0E2D] uppercase tracking-[0.2em] mb-1">Weekly Schedule</p>
           <h1 className="text-2xl font-black text-white tracking-tight">Training Plan</h1>
-          <p className="text-sm text-[#525252] mt-0.5">Example Week</p>
+          <p className="text-sm text-[#525252] mt-0.5">
+            Example week · {new Date(dates[0] + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}–{new Date(dates[6] + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+          </p>
         </div>
         <div className="flex gap-5">
           <div className="text-right">
@@ -60,9 +139,11 @@ export default function PlanPage() {
 
       <DemoBanner
         className="mb-6"
-        message="Example schedule — weekly plan generation isn't built yet. This isn't tailored to your actual data."
+        message="Example schedule. Weekly plan generation isn't built yet, but your logged workouts are real and shift the rest of this week."
       />
 
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] items-start">
+      <div className="min-w-0">
       {/* Phase banner */}
       <div className="rounded-xl border border-[#CE0E2D]/20 bg-[#CE0E2D]/5 p-4 mb-6 flex items-center gap-4">
         <div className="w-1 h-12 bg-[#CE0E2D] rounded-full flex-shrink-0" />
@@ -83,7 +164,7 @@ export default function PlanPage() {
               <div key={day.day} className="rounded-xl border border-[#1e1e1e] bg-[#111] p-4 flex items-center gap-4">
                 <div className="w-14 text-center flex-shrink-0">
                   <div className="text-sm font-black text-[#404040]">{day.day}</div>
-                  <div className="text-[9px] text-[#303030]">{day.date}</div>
+                  <div className="text-[9px] text-[#303030]">{new Date(dates[mockWeeklyPlan.indexOf(day)] + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>
                 </div>
                 <Coffee className="w-4 h-4 text-[#404040]" />
                 <div>
@@ -108,7 +189,7 @@ export default function PlanPage() {
                   {/* Day */}
                   <div className="w-14 flex-shrink-0 text-center">
                     <div className="text-sm font-black text-white">{day.day}</div>
-                    <div className="text-[9px] text-[#525252]">{day.date}</div>
+                    <div className="text-[9px] text-[#525252]">{new Date(dates[mockWeeklyPlan.indexOf(day)] + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>
                     {str && (
                       <div className="text-[8px] font-black text-[#CE0E2D] uppercase tracking-wider mt-1">AM</div>
                     )}
@@ -130,6 +211,7 @@ export default function PlanPage() {
                       <span className="text-[9px] text-[#404040] font-bold bg-[#151515] px-2 py-0.5 rounded">TSS {w.tss}</span>
                     </div>
                     <p className="text-[12px] text-[#737373] leading-relaxed">{w.notes}</p>
+                    <SessionStatus state={stateFor(`${dates[mockWeeklyPlan.indexOf(day)]}:main`)} onLog={() => openLog(`${dates[mockWeeklyPlan.indexOf(day)]}:main`)} />
 
                     {"fueling" in w && w.fueling && (
                       <div className="flex gap-4 text-[9px] text-[#525252] bg-[#151515] rounded-lg px-3 py-2 mt-2 font-medium">
@@ -187,6 +269,7 @@ export default function PlanPage() {
                         <span className="text-[9px] text-[#404040] font-bold bg-[#151515] px-2 py-0.5 rounded">TSS {str.tss}</span>
                       </div>
                       <p className="text-[12px] text-[#737373] leading-relaxed">{str.notes}</p>
+                      <SessionStatus state={stateFor(`${dates[mockWeeklyPlan.indexOf(day)]}:strength`)} onLog={() => openLog(`${dates[mockWeeklyPlan.indexOf(day)]}:strength`)} />
                     </div>
 
                     {/* Duration */}
@@ -216,6 +299,21 @@ export default function PlanPage() {
             <div className="text-[9px] text-[#525252]">{s.vol}</div>
           </div>
         ))}
+      </div>
+      </div>
+
+      <aside className="space-y-4 lg:sticky lg:top-6">
+        <LoadChart week={week} todayIso={todayIso} />
+        <div id="workout-log" className="scroll-mt-6">
+          {isSignedIn ? (
+            <WorkoutLogPanel sessions={sessions} logs={logs} selectedKey={selectedKey} onSelect={setSelectedKey}
+              onChanged={onLogChanged} todayIso={todayIso} />
+          ) : (
+            <p className="text-xs text-[#525252]">Sign in to log workouts.</p>
+          )}
+          {logError && <p className="text-[11px] text-[#f87171] mt-2">Couldn&apos;t load your logs. Refresh to try again.</p>}
+        </div>
+      </aside>
       </div>
     </div>
   );

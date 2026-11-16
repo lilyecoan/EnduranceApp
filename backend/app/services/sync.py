@@ -62,6 +62,19 @@ async def upsert_recovery(db: AsyncSession, user_id, source: str, rows: list[dic
     return len(rows)
 
 
+async def upsert_recovery_fields(db: AsyncSession, user_id, source: str, rows: list[dict]) -> int:
+    """Like upsert_recovery, but rows may carry different fields and only the
+    fields present are written, so a push with just today's resting HR doesn't
+    blank out the sleep sent earlier for the same day."""
+    groups: dict[frozenset, list[dict]] = {}
+    for row in rows:
+        if row:
+            groups.setdefault(frozenset(row), []).append(row)
+    for group in groups.values():
+        await upsert_recovery(db, user_id, source, group)
+    return sum(len(g) for g in groups.values())
+
+
 async def delete_source_data(db: AsyncSession, user_id, source: str) -> None:
     await db.execute(delete(Activity).where(Activity.user_id == user_id, Activity.source == source))
     await db.execute(

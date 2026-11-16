@@ -8,6 +8,9 @@ import type { ProviderId } from "@/lib/connectionsApi";
 import { completeOnboarding, updateProfile } from "@/lib/profileApi";
 import { displayToKg, weightUnit } from "@/lib/units";
 import { UnitsToggle, useUnits } from "@/components/units/UnitsProvider";
+import { RaceSetupForm } from "@/components/race/RaceSetupForm";
+import { setTrainingGoal } from "@/lib/raceApi";
+import { GOALS } from "@/lib/raceTypes";
 
 type DeviceId = "garmin" | "apple" | "other_watch" | "strava" | "none";
 
@@ -32,11 +35,11 @@ const GUIDES: Record<Exclude<DeviceId, "none">, Guide> = {
     hint: "Workouts, HRV, sleep, resting HR, training load",
     icon: Watch,
     steps: [
-      <>Create a free account at {ext("https://intervals.icu", "intervals.icu")}.</>,
-      <>In Intervals.icu, open <b>Settings → Connections</b> and connect <b>Garmin Connect</b>. Give it a few minutes to import your history.</>,
-      <>Come back here and connect Intervals.icu below. Your workouts and daily wellness come through automatically from then on.</>,
+      <><b>On iPhone (works best right now):</b> in Garmin Connect open <b>More → Settings → Connected Apps → Apple Health</b> and turn sharing on. Then set up <b>Apple Health (automatic)</b> below. Workouts, sleep, steps and heart rate come through (Garmin doesn&apos;t share HRV).</>,
+      <><b>Or via Intervals.icu:</b> create a free account at {ext("https://intervals.icu", "intervals.icu")}, connect Garmin under <b>Settings → Connections</b>, then connect Intervals.icu below. Garmin has recently limited what Intervals.icu can pass on, so this may bring in little or nothing.</>,
+      <>No connection at all? Use the <b>daily check-in</b> on your dashboard to type in resting HR, HRV and sleep from your watch.</>,
     ],
-    sources: ["intervals_icu", "file_upload"],
+    sources: ["health_auto_export", "intervals_icu", "file_upload"],
     alternative: {
       label: "Prefer not to create another account? Upload your Garmin data instead",
       steps: [
@@ -50,12 +53,10 @@ const GUIDES: Record<Exclude<DeviceId, "none">, Guide> = {
     hint: "Workouts, resting HR, HRV, sleep, weight",
     icon: Smartphone,
     steps: [
-      <>On your iPhone, open the <b>Health</b> app and tap your profile picture (top right).</>,
-      <>Tap <b>Export All Health Data → Export</b>. It may take a few minutes.</>,
-      <>Save <b>export.zip</b> to Files or AirDrop it to your computer, then upload it below.</>,
-      <>Re-upload a fresh export whenever you want to update — duplicates are skipped. (Automatic iPhone sync is planned.)</>,
+      <><b>Automatic:</b> set up <b>Apple Health (automatic)</b> below with the Health Auto Export app. New workouts, sleep, HRV and resting HR arrive on their own.</>,
+      <><b>One-off upload instead:</b> in the Health app tap your profile picture → <b>Export All Health Data</b>, then upload <b>export.zip</b> below. Re-upload whenever you like; duplicates are skipped.</>,
     ],
-    sources: ["file_upload"],
+    sources: ["health_auto_export", "file_upload"],
   },
   other_watch: {
     label: "Other watch (COROS, Wahoo, Polar, Suunto…)",
@@ -93,7 +94,9 @@ function Onboarding() {
   // Returning from a provider's consent screen lands back on the data step.
   // Captured once: DataSources strips ?source= from the URL after reading it.
   const [returnedFrom] = useState(params.get("source"));
-  const [step, setStep] = useState(returnedFrom ? 2 : 1);
+  const [step, setStep] = useState(returnedFrom ? 3 : 1);
+  const [goal, setGoal] = useState<string | null>(null);
+  const [goalError, setGoalError] = useState<string | null>(null);
   const [device, setDevice] = useState<DeviceId | null>(null);
   const [showAlt, setShowAlt] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -127,6 +130,16 @@ function Onboarding() {
     setStep(2);
   }
 
+  async function chooseGoal(id: string) {
+    setGoal(id);
+    setGoalError(null);
+    try {
+      await setTrainingGoal(await getToken(), id);
+    } catch {
+      setGoalError("Couldn't save your goal. You can set it later on the Race tab.");
+    }
+  }
+
   async function finish() {
     setSaving(true);
     await completeOnboarding(await getToken());
@@ -144,14 +157,14 @@ function Onboarding() {
           <button className={ghostCls} disabled={saving} onClick={finish}>Skip setup</button>
         </div>
         <div className="flex items-center gap-2 mb-6">
-          {["About you", "Your training data", "Done"].map((label, i) => (
+          {["About you", "Your goal", "Your training data", "Done"].map((label, i) => (
             <div key={label} className="flex items-center gap-2">
               <span className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center ${
                 step > i + 1 ? "bg-[#16a34a] text-white" : step === i + 1 ? "bg-[#CE0E2D] text-white" : "bg-[#1a1a1a] text-[#404040]"}`}>
                 {step > i + 1 ? <Check className="w-3 h-3" /> : i + 1}
               </span>
               <span className={`text-[11px] font-bold ${step === i + 1 ? "text-white" : "text-[#404040]"}`}>{label}</span>
-              {i < 2 && <span className="w-6 h-px bg-[#262626]" />}
+              {i < 3 && <span className="w-6 h-px bg-[#262626]" />}
             </div>
           ))}
         </div>
@@ -208,6 +221,38 @@ function Onboarding() {
         )}
 
         {step === 2 && (
+          <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-6 space-y-4">
+            <p className="text-sm text-[#a3a3a3]">What are you training for?</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {GOALS.map((g) => (
+                <button key={g.id} type="button" onClick={() => chooseGoal(g.id)} aria-pressed={goal === g.id}
+                  className={`text-left text-xs font-bold px-3 py-2.5 rounded-lg border ${goal === g.id
+                    ? "border-[#CE0E2D] bg-[#CE0E2D]/10 text-white" : "border-[#262626] bg-[#151515] text-[#a3a3a3] hover:border-[#404040]"}`}>
+                  {g.label}
+                </button>
+              ))}
+            </div>
+            {goalError && <p className="text-xs text-[#f87171]">{goalError}</p>}
+            {goal && GOALS.find((g) => g.id === goal)?.race && (
+              <div className="border-t border-[#1e1e1e] pt-4">
+                <p className="text-sm text-[#a3a3a3] mb-3">
+                  Signed up already? Add the race and we&apos;ll build a race-day nutrition plan for it.
+                </p>
+                <RaceSetupForm key={goal} race={null} goal={goal} onSaved={() => setStep(3)} submitLabel="Save race & continue" />
+              </div>
+            )}
+            <div className="flex justify-between pt-2">
+              <button className={ghostCls} onClick={() => setStep(1)}>
+                <ArrowLeft className="w-3.5 h-3.5" /> Back
+              </button>
+              <button className={goal && !GOALS.find((g) => g.id === goal)?.race ? primaryCls : ghostCls} onClick={() => setStep(3)}>
+                {goal && GOALS.find((g) => g.id === goal)?.race ? "Add race details later" : "Continue"} <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
           <div className="space-y-4">
             {!device && !returnedFrom && (
               <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-6">
@@ -221,7 +266,7 @@ function Onboarding() {
                       <div className="text-[11px] text-[#525252]">{g.hint}</div>
                     </button>
                   ))}
-                  <button onClick={() => setStep(3)}
+                  <button onClick={() => setStep(4)}
                     className="text-left p-4 rounded-lg border border-dashed border-[#262626] hover:border-[#404040]">
                     <div className="text-sm font-black text-[#a3a3a3]">No device / set up later</div>
                     <div className="text-[11px] text-[#525252]">You&apos;ll see demo data until you connect something</div>
@@ -261,11 +306,11 @@ function Onboarding() {
             )}
 
             <div className="flex justify-between">
-              <button className={ghostCls} onClick={() => (device ? setDevice(null) : setStep(1))}>
+              <button className={ghostCls} onClick={() => (device ? setDevice(null) : setStep(2))}>
                 <ArrowLeft className="w-3.5 h-3.5" /> Back
               </button>
               {(guide || returnedFrom) && (
-                <button className={primaryCls} onClick={() => setStep(3)}>
+                <button className={primaryCls} onClick={() => setStep(4)}>
                   Continue <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               )}
@@ -273,7 +318,7 @@ function Onboarding() {
           </div>
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-6 space-y-3">
             <h2 className="text-lg font-black text-white">You&apos;re set</h2>
             <p className="text-sm text-[#a3a3a3]">
@@ -281,7 +326,7 @@ function Onboarding() {
               else. You can add or remove data sources any time in <b>Settings</b>.
             </p>
             <div className="flex justify-between pt-2">
-              <button className={ghostCls} onClick={() => setStep(2)}>
+              <button className={ghostCls} onClick={() => setStep(3)}>
                 <ArrowLeft className="w-3.5 h-3.5" /> Back
               </button>
               <button className={primaryCls} disabled={saving} onClick={finish}>

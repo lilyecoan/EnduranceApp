@@ -34,6 +34,10 @@ class AthleteProfile(Base):
     swim_pace_per_100m = Column(Float)
     run_threshold_pace = Column(Float)
 
+    # What the athlete is training for: a race type (see RaceDistance) or
+    # "gym" / "general" when there is no race.
+    training_goal = Column(String(30))
+
     weekly_hours_available = Column(Float, default=10.0)
     preferred_long_ride_day = Column(String(10), default="Saturday")
     preferred_long_run_day = Column(String(10), default="Sunday")

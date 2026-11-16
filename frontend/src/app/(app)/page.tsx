@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { Heart, Zap, Moon, Battery, Brain, Activity, TrendingUp } from "lucide-react";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -7,6 +8,7 @@ import { CoachCard } from "@/components/dashboard/CoachCard";
 import { RaceCountdown } from "@/components/dashboard/RaceCountdown";
 import { DemoBanner } from "@/components/dashboard/DemoBanner";
 import { HealthCard } from "@/components/dashboard/HealthCard";
+import { DailyCheckIn } from "@/components/dashboard/DailyCheckIn";
 import { useGarminData } from "@/hooks/useGarminData";
 import { useAthleteProfile } from "@/hooks/useAthleteProfile";
 import { useCoachingPlan } from "@/hooks/useCoachingPlan";
@@ -14,9 +16,10 @@ import { formatDuration } from "@/lib/utils";
 
 export default function OverviewPage() {
   const { user } = useUser();
-  const { data: g, source } = useGarminData();
+  const [refreshKey, setRefreshKey] = useState(0);
+  const { data: g, source } = useGarminData(refreshKey);
   const { profile } = useAthleteProfile();
-  const { plan, loading: planLoading } = useCoachingPlan();
+  const { plan, loading: planLoading } = useCoachingPlan(refreshKey);
 
   const hrvAbove =
     g.hrv_rmssd != null && g.hrv_baseline
@@ -37,7 +40,7 @@ export default function OverviewPage() {
           <p className="text-sm text-[#525252] mt-0.5">
             {profile?.primary_race_name
               ? `${profile.primary_race_name}${profile.primary_race_date ? ` · ${profile.primary_race_date}` : ""}`
-              : "Complete your profile to set a race goal"}
+              : "Add your race on the Race tab"}
           </p>
         </div>
         <div className="flex flex-col items-end gap-1.5">
@@ -58,14 +61,16 @@ export default function OverviewPage() {
             }`}
           >
             <div className={`w-1.5 h-1.5 rounded-full ${source === "live" ? "bg-[#CE0E2D] animate-pulse" : "bg-[#404040]"}`} />
-            {source === "live" ? "Garmin Live" : "Demo Data"}
+            {source === "live" ? "Your data" : "Demo Data"}
           </div>
         </div>
       </div>
 
       {source === "demo" && (
-        <DemoBanner className="mb-4" message="Garmin isn't connected yet — showing demo data." />
+        <DemoBanner className="mb-4" message="No wellness data yet, so this shows demo data. Do today's check-in below, or connect a source in Settings." />
       )}
+
+      <DailyCheckIn className="mb-6" onSaved={() => setRefreshKey((k) => k + 1)} />
 
       {/* Coach cards — always from the real coaching pipeline, never a static message */}
       {planLoading ? (

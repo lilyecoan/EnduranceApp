@@ -21,12 +21,14 @@ from app.models.connection import DataConnection
 from app.models.recovery import RecoveryMetric
 from app.models.user import User
 from app.services import sync
-from app.services.sources import AI_EXCLUDED_SOURCES, file_import, intervals_icu, strava
+from app.routers.ingest import ingest_url, new_token
+from app.services.sources import AI_EXCLUDED_SOURCES, file_import, health_auto_export, intervals_icu, strava
 
 log = structlog.get_logger()
 router = APIRouter(prefix="/connections", tags=["connections"])
 
 Provider = Literal["intervals_icu", "strava"]
+DisconnectProvider = Literal["intervals_icu", "strava", "health_auto_export"]
 MAX_UPLOAD_BYTES = 200 * 1024**2
 
 
@@ -97,6 +99,18 @@ async def list_connections(current_user: User = Depends(get_current_user), db: A
                 **await _source_counts(db, current_user.id, provider),
             }
         )
+    hae = await _get_connection(db, current_user.id, health_auto_export.SOURCE)
+    sources.append(
+        {
+            "provider": health_auto_export.SOURCE,
+            "connected": hae is not None,
+            "ingest_url": ingest_url(),
+            "last_sync_at": hae.last_sync_at.isoformat() if hae and hae.last_sync_at else None,
+            "last_sync_error": hae.last_sync_error if hae else None,
+            "used_for_coaching": True,
+            **await _source_counts(db, current_user.id, health_auto_export.SOURCE),
+        }
+    )
     sources.append(
         {
             "provider": file_import.SOURCE,
@@ -220,8 +234,19 @@ async def sync_now(provider: Provider, current_user: User = Depends(get_current_
     return await sync.sync_connection(db, conn)
 
 
+@router.post("/health_auto_export/token")
+async def create_ingest_token(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Create (or replace) the athlete's Health Auto Export token. Shown once;
+    creating a new one stops the old one working."""
+    token, token_hash = new_token()
+    await _save_connection(db, current_user.id, health_auto_export.SOURCE, auth_type="push_token",
+                           external_athlete_id=token_hash, encrypted_access_token="")
+    await db.commit()
+    return {"token": token, "url": ingest_url()}
+
+
 @router.delete("/{provider}", status_code=status.HTTP_204_NO_CONTENT)
-async def disconnect(provider: Provider, current_user: User = Depends(get_current_user),
+async def disconnect(provider: DisconnectProvider, current_user: User = Depends(get_current_user),
                      db: AsyncSession = Depends(get_db)):
     """Revoke access at the provider (best effort) and delete its imported data."""
     conn = await _get_connection(db, current_user.id, provider)

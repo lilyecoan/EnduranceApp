@@ -5,7 +5,7 @@ import structlog
 
 from app.core.config import settings
 from app.db.base import engine
-from app.routers import coaching, connections, profile
+from app.routers import coaching, connections, ingest, profile, race, training, wellness
 
 log = structlog.get_logger()
 
@@ -28,6 +28,10 @@ app.add_middleware(
 app.include_router(coaching.router, prefix="/api/v1")
 app.include_router(profile.router, prefix="/api/v1")
 app.include_router(connections.router, prefix="/api/v1")
+app.include_router(training.router, prefix="/api/v1")
+app.include_router(race.router, prefix="/api/v1")
+app.include_router(wellness.router, prefix="/api/v1")
+app.include_router(ingest.router, prefix="/api/v1")
 
 
 @app.get("/health")

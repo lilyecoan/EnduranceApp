@@ -6,7 +6,7 @@ import { mockGarminData } from "@/lib/mockData";
 
 const REFRESH_MS = 5 * 60 * 1000; // refresh every 5 minutes
 
-export function useGarminData() {
+export function useGarminData(refreshKey = 0) {
   const { getToken } = useAuth();
   const [data, setData] = useState<GarminSnapshot>(mockGarminData);
   const [source, setSource] = useState<"live" | "demo">("demo");
@@ -32,7 +32,7 @@ export function useGarminData() {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [getToken]);
+  }, [getToken, refreshKey]);
 
   return { data, source, isLive: source === "live", asOf, loading };
 }

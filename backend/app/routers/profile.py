@@ -64,6 +64,7 @@ class ProfileResponse(BaseModel):
     primary_race_name: Optional[str] = None
     primary_race_date: Optional[str] = None
     primary_race_distance: Optional[str] = None
+    training_goal: Optional[str] = None
 
 
 ATHLETE_FIELDS = (
@@ -121,6 +122,7 @@ async def _build_response(db: AsyncSession, current_user: User) -> ProfileRespon
         primary_race_name=race.name if race else None,
         primary_race_date=race.race_date.isoformat() if race else None,
         primary_race_distance=race.distance.value if race else None,
+        training_goal=athlete.training_goal,
     )
 
 

@@ -19,7 +19,8 @@ from app.services.sources import AI_EXCLUDED_SOURCES
 
 _LOOKBACK_DAYS = 14
 # Prefer the API-synced source when several report the same day.
-_SOURCE_PRIORITY = {"intervals_icu": 0, "file_upload": 1}
+# The athlete's own check-in wins for the fields it covers.
+_SOURCE_PRIORITY = {"manual": 0, "intervals_icu": 1, "health_auto_export": 2, "file_upload": 3}
 
 _SNAPSHOT_KEYS = (
     "hrv_rmssd", "hrv_baseline", "hrv_5day_avg", "hrv_status", "sleep_score",

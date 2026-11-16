@@ -4,6 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import { useAthleteProfile } from "@/hooks/useAthleteProfile";
 import { useCoachingPlan } from "@/hooks/useCoachingPlan";
 import { StatCard } from "@/components/dashboard/StatCard";
+import { TrainingGoalCard } from "@/components/profile/TrainingGoalCard";
 import { Zap, Heart, Activity, Target, AlertCircle, Info } from "lucide-react";
 import type { AthleteProfile } from "@/lib/profileApi";
 import { useUnits } from "@/components/units/UnitsProvider";
@@ -85,7 +86,7 @@ function powerZonesFor(ftp: number) {
 
 export default function ProfilePage() {
   const { user } = useUser();
-  const { profile, loading, save } = useAthleteProfile();
+  const { profile, loading, save, reload } = useAthleteProfile();
   const { plan } = useCoachingPlan();
   const { units } = useUnits();
   const [form, setForm] = useState<FormState>(toFormState(null, units));
@@ -158,6 +159,8 @@ export default function ProfilePage() {
           </button>
         )}
       </div>
+
+      <TrainingGoalCard goal={profile?.training_goal ?? null} raceName={profile?.primary_race_name ?? null} onChanged={reload} />
 
       {editing ? (
         <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-5 mb-6">

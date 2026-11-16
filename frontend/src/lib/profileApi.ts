@@ -22,6 +22,7 @@ export type AthleteProfile = {
   primary_race_name: string | null;
   primary_race_date: string | null;
   primary_race_distance: string | null;
+  training_goal: string | null;
 };
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000";
