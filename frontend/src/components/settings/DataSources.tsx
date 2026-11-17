@@ -44,7 +44,7 @@ function formatWhen(iso?: string | null) {
 
 function Counts({ s }: { s: SourceStatus }) {
   return (
-    <span className="text-[10px] text-[#525252]">
+    <span className="text-[10px] text-muted">
       {s.activities} workouts · {s.wellness_days} wellness days
     </span>
   );
@@ -56,18 +56,18 @@ function StatusPill({ connected }: { connected: boolean }) {
       <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80]" /> Connected
     </span>
   ) : (
-    <span className="text-[10px] font-bold text-[#404040] bg-[#1a1a1a] border border-[#222] px-3 py-1 rounded-full uppercase tracking-wider">
+    <span className="text-[10px] font-bold text-muted/70 bg-surface2 border border-stroke px-3 py-1 rounded-full uppercase tracking-wider">
       Not connected
     </span>
   );
 }
 
 const buttonCls =
-  "flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg border border-[#262626] bg-[#151515] text-[#d4d4d4] hover:bg-[#1c1c1c] disabled:opacity-40 disabled:cursor-not-allowed";
+  "flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg border border-stroke bg-surface2 text-fg/80 hover:bg-surface2 disabled:opacity-40 disabled:cursor-not-allowed";
 const primaryCls =
-  "flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg bg-[#CE0E2D] text-white hover:bg-[#b00c27] disabled:opacity-40 disabled:cursor-not-allowed";
+  "flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full bg-lime text-ink hover:bg-lime/90 disabled:opacity-40 disabled:cursor-not-allowed";
 const inputCls =
-  "w-full text-xs bg-[#0d0d0d] border border-[#262626] rounded-lg px-3 py-2 text-white placeholder:text-[#404040] focus:outline-none focus:border-[#404040]";
+  "w-full text-xs bg-bg border border-stroke rounded-lg px-3 py-2 text-white placeholder:text-muted/60 focus:outline-none focus:border-muted";
 
 type DataSourcesProps = {
   /** Render only these sources (e.g. inside onboarding). Defaults to all. */
@@ -164,33 +164,33 @@ export default function DataSources({ only, embedded = false, returnTo = "/setti
     const url = ingest?.url ?? s.ingest_url ?? "";
     const field = (label: string, value: string, secret = false) => (
       <div className="flex items-center gap-2">
-        <span className="w-20 flex-shrink-0 text-[10px] text-[#525252]">{label}</span>
-        <code className={`flex-1 min-w-0 truncate text-[11px] bg-[#0d0d0d] border border-[#262626] rounded px-2 py-1 ${secret ? "text-[#fbbf24]" : "text-[#d4d4d4]"}`}>{value}</code>
+        <span className="w-20 flex-shrink-0 text-[10px] text-muted">{label}</span>
+        <code className={`flex-1 min-w-0 truncate text-[11px] bg-bg border border-stroke rounded px-2 py-1 ${secret ? "text-[#fbbf24]" : "text-fg/80"}`}>{value}</code>
         <button className={buttonCls} onClick={() => copy(label, value)} aria-label={`Copy ${label}`}>
           <Copy className="w-3 h-3" /> {copied === label ? "Copied" : "Copy"}
         </button>
       </div>
     );
     return (
-      <div key="health_auto_export" className="rounded-xl border border-[#1e1e1e] bg-[#111] p-5 mb-3">
+      <div key="health_auto_export" className="rounded-[24px] border border-stroke bg-surface p-5 mb-3">
         <div className="flex items-start justify-between gap-3 mb-2">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#2563eb]/10 flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 rounded-[24px] bg-[#2563eb]/10 flex items-center justify-center flex-shrink-0">
               <Smartphone className="w-4 h-4 text-[#60a5fa]" />
             </div>
             <div>
-              <h3 className="text-sm font-black text-white flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                 {info.name}
-                <span className="text-[9px] font-bold text-[#CE0E2D] bg-[#CE0E2D]/10 px-2 py-0.5 rounded uppercase tracking-wider">{info.badge}</span>
+                <span className="text-[9px] font-bold text-lime bg-lime/10 px-2 py-0.5 rounded uppercase tracking-wider">{info.badge}</span>
               </h3>
               {s.connected ? <Counts s={s} /> : null}
             </div>
           </div>
           <StatusPill connected={s.connected} />
         </div>
-        <p className="text-[11px] text-[#737373] mb-3">{info.blurb}</p>
+        <p className="text-[11px] text-muted mb-3">{info.blurb}</p>
         {s.connected && (
-          <p className="text-[10px] text-[#525252] mb-3">
+          <p className="text-[10px] text-muted mb-3">
             Last data received {formatWhen(s.last_sync_at)}
           </p>
         )}
@@ -209,7 +209,7 @@ export default function DataSources({ only, embedded = false, returnTo = "/setti
           </div>
         )}
 
-        <ol className="list-decimal pl-4 space-y-1 text-[11px] text-[#a3a3a3] mb-3">
+        <ol className="list-decimal pl-4 space-y-1 text-[11px] text-fg/80 mb-3">
           <li>Install <b>Health Auto Export – JSON+CSV</b> on your iPhone. Automatic sending needs its Premium plan (7-day free trial).</li>
           <li>Click <b>{s.connected ? "New token" : "Get my token"}</b> below.</li>
           <li>In the app: <b>Automations → New → REST API</b>. Paste the URL. Under <b>HTTP Headers</b>, add the header key and value.</li>
@@ -248,17 +248,17 @@ export default function DataSources({ only, embedded = false, returnTo = "/setti
     const info = PROVIDER_INFO[id];
     if (!s) return null;
     return (
-      <div key={id} className="rounded-xl border border-[#1e1e1e] bg-[#111] p-5 mb-3">
+      <div key={id} className="rounded-[24px] border border-stroke bg-surface p-5 mb-3">
         <div className="flex items-start justify-between gap-3 mb-2">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#2563eb]/10 flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 rounded-[24px] bg-[#2563eb]/10 flex items-center justify-center flex-shrink-0">
               {id === "intervals_icu" ? <Activity className="w-4 h-4 text-[#60a5fa]" /> : <Link className="w-4 h-4 text-[#60a5fa]" />}
             </div>
             <div>
-              <h3 className="text-sm font-black text-white flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                 {info.name}
                 {info.badge && (
-                  <span className="text-[9px] font-bold text-[#CE0E2D] bg-[#CE0E2D]/10 px-2 py-0.5 rounded uppercase tracking-wider">
+                  <span className="text-[9px] font-bold text-lime bg-lime/10 px-2 py-0.5 rounded uppercase tracking-wider">
                     {info.badge}
                   </span>
                 )}
@@ -268,10 +268,10 @@ export default function DataSources({ only, embedded = false, returnTo = "/setti
           </div>
           <StatusPill connected={s.connected} />
         </div>
-        <p className="text-[11px] text-[#737373] mb-3">{info.blurb}</p>
+        <p className="text-[11px] text-muted mb-3">{info.blurb}</p>
 
         {s.connected && (
-          <p className="text-[10px] text-[#525252] mb-3">
+          <p className="text-[10px] text-muted mb-3">
             Last synced {formatWhen(s.last_sync_at)}
             {s.auth_type === "api_key" ? " · via personal API key" : ""}
             {!s.used_for_coaching ? " · not used by AI coach" : ""}
@@ -323,13 +323,13 @@ export default function DataSources({ only, embedded = false, returnTo = "/setti
           )}
         </div>
         {!s.connected && !s.oauth_available && (
-          <p className="text-[10px] text-[#404040] mt-2">
+          <p className="text-[10px] text-muted/70 mt-2">
             One-click sign-in for {info.name} isn&apos;t set up on this server yet.
           </p>
         )}
 
         {id === "intervals_icu" && showKeyForm && !s.connected && (
-          <form className="mt-3 space-y-2 border-t border-[#1e1e1e] pt-3"
+          <form className="mt-3 space-y-2 border-t border-stroke pt-3"
             onSubmit={(e) => {
               e.preventDefault();
               run("intervals-key", async () => {
@@ -339,7 +339,7 @@ export default function DataSources({ only, embedded = false, returnTo = "/setti
                 return r.error ? undefined : `Intervals.icu connected: ${r.activities} workouts and ${r.wellness_days} wellness days imported.`;
               });
             }}>
-            <p className="text-[10px] text-[#525252]">
+            <p className="text-[10px] text-muted">
               For your own account only. In Intervals.icu open Settings → Developer Settings to find your athlete ID
               (e.g. i123456) and API key. The key is stored encrypted.
             </p>
@@ -358,8 +358,8 @@ export default function DataSources({ only, embedded = false, returnTo = "/setti
     <div className="mb-4">
       {!embedded && (
         <>
-          <p className="text-[9px] font-bold text-[#525252] uppercase tracking-[0.15em] mb-1">Data sources</p>
-          <p className="text-xs text-[#525252] mb-3">
+          <p className="text-[9px] font-bold text-muted uppercase tracking-[0.15em] mb-1">Data sources</p>
+          <p className="text-xs text-muted mb-3">
             Pick where your training data comes from. You can use more than one; until you connect something, the
             dashboard shows clearly labeled demo data.
           </p>
@@ -380,26 +380,26 @@ export default function DataSources({ only, embedded = false, returnTo = "/setti
           Connecting accounts isn&apos;t enabled on this server yet (missing encryption key). File uploads still work.
         </p>
       )}
-      {loading && <p className="text-xs text-[#525252]">Loading…</p>}
+      {loading && <p className="text-xs text-muted">Loading…</p>}
 
       {oauthCard(intervals, "intervals_icu")}
       {oauthCard(stravaSrc, "strava")}
       {hae && haeCard(hae)}
 
       {uploads && (
-        <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-5">
+        <div className="rounded-[24px] border border-stroke bg-surface p-5">
           <div className="flex items-start justify-between gap-3 mb-2">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-[#2563eb]/10 flex items-center justify-center flex-shrink-0">
+              <div className="w-9 h-9 rounded-[24px] bg-[#2563eb]/10 flex items-center justify-center flex-shrink-0">
                 <Upload className="w-4 h-4 text-[#60a5fa]" />
               </div>
               <div>
-                <h3 className="text-sm font-black text-white">{PROVIDER_INFO.file_upload.name}</h3>
+                <h3 className="text-sm font-semibold text-white">{PROVIDER_INFO.file_upload.name}</h3>
                 <Counts s={uploads} />
               </div>
             </div>
           </div>
-          <p className="text-[11px] text-[#737373] mb-3">{PROVIDER_INFO.file_upload.blurb}</p>
+          <p className="text-[11px] text-muted mb-3">{PROVIDER_INFO.file_upload.blurb}</p>
           <input ref={fileInput} type="file" accept=".fit,.zip,.xml" className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
@@ -431,7 +431,7 @@ export default function DataSources({ only, embedded = false, returnTo = "/setti
                 </button>
               ))}
           </div>
-          <p className="text-[10px] text-[#404040] mt-2">
+          <p className="text-[10px] text-muted/70 mt-2">
             Apple Health → profile picture → Export All Health Data. Garmin Connect → Account → Data Management →
             Export Your Data. Re-uploading the same file won&apos;t create duplicates.
           </p>

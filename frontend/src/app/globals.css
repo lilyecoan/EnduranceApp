@@ -1,29 +1,32 @@
 @import "tailwindcss";
 
-/* ─── Ironman Brand Theme ──────────────────────────────────── */
+/* ─── IronMind theme (Figma "IronMind" file, color/* variables) ─────────── */
 :root {
-  --im-red: #CE0E2D;
-  --im-red-light: #E31837;
-  --im-red-dark: #9B0A21;
-
-  --background: #080808;
-  --surface: #111111;
-  --surface-2: #1a1a1a;
-  --border: #222222;
-  --border-light: #2a2a2a;
-
-  --foreground: #f5f5f5;
-  --muted: #737373;
-  --muted-2: #404040;
-
-  --success: #16a34a;
-  --warning: #d97706;
-  --danger: #CE0E2D;
+  --bg: #0a0a0b;
+  --side: #0f0f11;
+  --surface: #151517;
+  --surface2: #1d1e21;
+  --stroke: #2a2b30;
+  --fg: #f4f4f0;
+  --muted: #8b8b92;
+  --lime: #d4f54c;
+  --ink: #0d0e09;
+  --swim: #7fb8ff;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-bg: var(--bg);
+  --color-side: var(--side);
+  --color-surface: var(--surface);
+  --color-surface2: var(--surface2);
+  --color-stroke: var(--stroke);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-lime: var(--lime);
+  --color-ink: var(--ink);
+  --color-swim: var(--swim);
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -31,39 +34,29 @@
 * { box-sizing: border-box; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg);
+  color: var(--fg);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: #111; }
-::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: #CE0E2D; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--stroke); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--lime); }
 
 /* Recharts dark overrides */
 .recharts-cartesian-grid-horizontal line,
-.recharts-cartesian-grid-vertical line { stroke: #1e1e1e; }
-.recharts-text { fill: #525252; font-size: 11px; }
+.recharts-cartesian-grid-vertical line { stroke: var(--stroke); }
+.recharts-text { fill: var(--muted); font-size: 11px; }
 .recharts-tooltip-wrapper { outline: none; }
 
-/* Ironman utility classes */
-.im-red { color: #CE0E2D; }
-.im-red-bg { background-color: #CE0E2D; }
-.im-card {
-  background: #111111;
-  border: 1px solid #222222;
-  border-radius: 12px;
+/* Design icons: the Figma SVG supplies the shape; currentColor fills it. */
+.figma-icon {
+  display: inline-block;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask: var(--icon) center / contain no-repeat;
+  mask: var(--icon) center / contain no-repeat;
 }
-.im-card-hover:hover {
-  border-color: #333333;
-}
-
-/* Fun sport label pulse */
-@keyframes pulse-red {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-}
-.pulse-red { animation: pulse-red 2s ease-in-out infinite; }

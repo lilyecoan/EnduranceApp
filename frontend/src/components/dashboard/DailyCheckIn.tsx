@@ -8,7 +8,7 @@ import { displayToKg, kgToDisplay, weightUnit } from "@/lib/units";
 import { isoDate } from "@/lib/weekPlan";
 
 const inputCls =
-  "w-full text-sm bg-[#0d0d0d] border border-[#262626] rounded-lg px-3 py-2 text-white placeholder:text-[#404040] focus:outline-none focus:border-[#404040]";
+  "w-full text-sm bg-bg border border-stroke rounded-lg px-3 py-2 text-white placeholder:text-muted/60 focus:outline-none focus:border-muted";
 
 const SCALES = [
   { key: "sleep_quality", label: "Sleep quality", low: "Awful", high: "Great" },
@@ -89,20 +89,20 @@ export function DailyCheckIn({ className = "", onSaved }: { className?: string; 
   const empty_ = Object.values(form).every((v) => v === "" || v === null);
 
   return (
-    <div className={`rounded-xl border border-[#1e1e1e] bg-[#111] p-5 ${className}`}>
+    <div id="check-in" className={`scroll-mt-6 rounded-[24px] border border-stroke bg-surface p-5 ${className}`}>
       <div className="flex items-center justify-between gap-2 mb-1">
         <div className="flex items-center gap-2">
           <ClipboardCheck className="w-4 h-4 text-[#4ade80]" />
-          <h3 className="text-sm font-black text-white">Daily check-in</h3>
+          <h3 className="text-sm font-semibold text-white">Daily check-in</h3>
           {savedToday && <span className="text-[10px] font-bold text-[#4ade80] bg-[#16a34a]/10 px-2 py-0.5 rounded">Done today</span>}
         </div>
         {savedToday && (
-          <button className="text-[11px] font-bold text-[#737373] hover:text-white" onClick={() => setOpen((v) => !v)}>
+          <button className="text-[11px] font-bold text-muted hover:text-white" onClick={() => setOpen((v) => !v)}>
             {open ? "Close" : "Edit"}
           </button>
         )}
       </div>
-      <p className="text-[11px] text-[#525252] mb-3">
+      <p className="text-[11px] text-muted mb-3">
         30 seconds each morning. Everything is optional; type numbers from your watch or scale if it isn&apos;t connected.
       </p>
 
@@ -111,51 +111,51 @@ export function DailyCheckIn({ className = "", onSaved }: { className?: string; 
           <div className="grid sm:grid-cols-3 gap-3 mb-3">
             {SCALES.map((s) => (
               <div key={s.key}>
-                <div className="text-[11px] font-bold text-[#737373] mb-1">{s.label}</div>
+                <div className="text-[11px] font-bold text-muted mb-1">{s.label}</div>
                 <div className="grid grid-cols-5 gap-1">
                   {[1, 2, 3, 4, 5].map((v) => (
                     <button key={v} type="button" aria-pressed={form[s.key] === v} aria-label={`${s.label} ${v} of 5`}
                       onClick={() => setForm({ ...form, [s.key]: form[s.key] === v ? null : v })}
-                      className={`h-7 rounded text-[11px] font-bold ${form[s.key] === v ? "bg-[#CE0E2D] text-white" : "bg-[#1a1a1a] text-[#737373] hover:text-white"}`}>
+                      className={`h-7 rounded text-[11px] font-bold ${form[s.key] === v ? "bg-lime text-ink" : "bg-surface2 text-muted hover:text-white"}`}>
                       {v}
                     </button>
                   ))}
                 </div>
-                <div className="flex justify-between text-[9px] text-[#404040] mt-0.5"><span>{s.low}</span><span>{s.high}</span></div>
+                <div className="flex justify-between text-[9px] text-muted/70 mt-0.5"><span>{s.low}</span><span>{s.high}</span></div>
               </div>
             ))}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-            <label className="text-[11px] font-bold text-[#737373] space-y-1">
+            <label className="text-[11px] font-bold text-muted space-y-1">
               <span>Sleep (hours)</span>
               <input className={inputCls} type="number" min={0} max={24} step={0.25} inputMode="decimal" value={form.sleepHours}
                 onChange={(e) => setForm({ ...form, sleepHours: e.target.value })} />
             </label>
-            <label className="text-[11px] font-bold text-[#737373] space-y-1">
+            <label className="text-[11px] font-bold text-muted space-y-1">
               <span>Resting HR</span>
               <input className={inputCls} type="number" min={20} max={150} inputMode="numeric" value={form.resting}
                 onChange={(e) => setForm({ ...form, resting: e.target.value })} />
             </label>
-            <label className="text-[11px] font-bold text-[#737373] space-y-1">
+            <label className="text-[11px] font-bold text-muted space-y-1">
               <span title="Overnight HRV as Garmin, WHOOP or Oura show it (rMSSD)">HRV (ms)</span>
               <input className={inputCls} type="number" min={1} max={300} inputMode="numeric" value={form.hrv}
                 onChange={(e) => setForm({ ...form, hrv: e.target.value })} />
             </label>
-            <label className="text-[11px] font-bold text-[#737373] space-y-1">
+            <label className="text-[11px] font-bold text-muted space-y-1">
               <span>Weight ({weightUnit(units)})</span>
               <input className={inputCls} type="number" min={40} max={700} step={0.1} inputMode="decimal" value={form.weight}
                 onChange={(e) => setForm({ ...form, weight: e.target.value })} />
             </label>
           </div>
-          <label className="block text-[11px] font-bold text-[#737373] space-y-1 mb-3">
+          <label className="block text-[11px] font-bold text-muted space-y-1 mb-3">
             <span>Anything else?</span>
             <textarea className={`${inputCls} min-h-[56px] resize-y`} maxLength={1000} value={form.notes}
               placeholder="e.g. ankle a bit stiff, stressful week at work, period started, low glucose overnight"
               onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           </label>
-          <p className="text-[10px] text-[#404040] mb-3">HRV here means the overnight number from Garmin, WHOOP or Oura (rMSSD). Apple Watch HRV is a different measure, so leave it blank if that&apos;s what you have.</p>
+          <p className="text-[10px] text-muted/70 mb-3">HRV here means the overnight number from Garmin, WHOOP or Oura (rMSSD). Apple Watch HRV is a different measure, so leave it blank if that&apos;s what you have.</p>
           <button onClick={save} disabled={saving || empty_}
-            className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-lg bg-[#CE0E2D] text-white hover:bg-[#b00c27] disabled:opacity-40">
+            className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-full bg-lime text-ink hover:bg-lime/90 disabled:opacity-40">
             <Check className="w-3.5 h-3.5" /> {savedToday ? "Update check-in" : "Save check-in"}
           </button>
         </>

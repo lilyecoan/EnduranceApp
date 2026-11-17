@@ -16,8 +16,8 @@ import {
 const Tip = ({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) => {
   if (active && payload?.length) {
     return (
-      <div className="bg-[#111] border border-[#2a2a2a] rounded-lg p-3 text-xs shadow-2xl">
-        <p className="text-[#525252] mb-1">{label}</p>
+      <div className="bg-surface border border-stroke rounded-lg p-3 text-xs shadow-2xl">
+        <p className="text-muted mb-1">{label}</p>
         {payload.map((p) => (
           <p key={p.name} className="font-bold" style={{ color: p.color }}>{p.name}: {p.value}</p>
         ))}
@@ -35,22 +35,22 @@ export default function RecoveryPage() {
   const sleepHours = g.sleep_duration_seconds ? (g.sleep_duration_seconds / 3600).toFixed(1) : null;
 
   return (
-    <div className="p-6 max-w-7xl">
+    <div className="px-5 py-7 lg:px-10 lg:py-8 max-w-7xl">
       {/* Header */}
       <div className="mb-6">
-        <p className="text-[10px] font-bold text-[#CE0E2D] uppercase tracking-[0.2em] mb-1">Biometric Analysis</p>
-        <h1 className="text-2xl font-black text-white tracking-tight">Recovery Analytics</h1>
+        <p className="text-sm font-medium text-muted mb-1.5">Biometric Analysis</p>
+        <h1 className="text-[30px] font-semibold text-fg tracking-[-0.9px]">Recovery Analytics</h1>
         <div className="flex items-center gap-2 mt-0.5">
-          <p className="text-sm text-[#525252]">Garmin Connect</p>
-          <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${isLive ? "bg-[#CE0E2D]/10 text-[#CE0E2D] border border-[#CE0E2D]/20" : "bg-[#1a1a1a] text-[#404040] border border-[#222]"}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${isLive ? "bg-[#CE0E2D] animate-pulse" : "bg-[#404040]"}`} />
+          <p className="text-sm text-muted">Garmin Connect</p>
+          <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${isLive ? "bg-lime/10 text-lime border border-lime/20" : "bg-surface2 text-muted/70 border border-stroke"}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${isLive ? "bg-lime animate-pulse" : "bg-muted/50"}`} />
             {isLive ? "Live" : "Demo"}
           </span>
         </div>
       </div>
 
       {loading ? (
-        <p className="text-sm text-[#525252] mb-6">Loading recovery assessment…</p>
+        <p className="text-sm text-muted mb-6">Loading recovery assessment…</p>
       ) : recovery ? (
         <CoachCard
           title="Recovery Assessment"
@@ -74,11 +74,11 @@ export default function RecoveryPage() {
           { score: g.sleep_score ?? null, label: "Sleep Quality" },
           { score: g.body_battery_morning ?? null, label: "Body Battery" },
         ].map((r) => (
-          <div key={r.label} className="rounded-xl border border-[#1e1e1e] bg-[#111] p-4 flex flex-col items-center justify-center gap-2">
+          <div key={r.label} className="rounded-[24px] border border-stroke bg-surface p-4 flex flex-col items-center justify-center gap-2">
             {r.score !== null ? (
               <ScoreRing score={r.score} label={r.label} size={100} />
             ) : (
-              <div className="text-center text-[10px] text-[#404040] uppercase tracking-wider">No {r.label.toLowerCase()} data</div>
+              <div className="text-center text-[10px] text-muted/70 uppercase tracking-wider">No {r.label.toLowerCase()} data</div>
             )}
           </div>
         ))}
@@ -97,9 +97,9 @@ export default function RecoveryPage() {
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* HRV 14-day trend */}
-        <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-4">
+        <div className="rounded-[24px] border border-stroke bg-surface p-4">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-[9px] font-bold text-[#525252] uppercase tracking-[0.15em]">HRV Trend — Example</p>
+            <p className="text-[9px] font-bold text-muted uppercase tracking-[0.15em]">HRV Trend — Example</p>
           </div>
           <div className="h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -121,8 +121,8 @@ export default function RecoveryPage() {
         </div>
 
         {/* Sleep Quality 14-day */}
-        <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-4">
-          <p className="text-[9px] font-bold text-[#525252] uppercase tracking-[0.15em] mb-4">Sleep Quality — Example</p>
+        <div className="rounded-[24px] border border-stroke bg-surface p-4">
+          <p className="text-[9px] font-bold text-muted uppercase tracking-[0.15em] mb-4">Sleep Quality — Example</p>
           <div className="h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={mockRecoveryHistory}>
@@ -137,8 +137,8 @@ export default function RecoveryPage() {
         </div>
 
         {/* Readiness + Body Battery */}
-        <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-4">
-          <p className="text-[9px] font-bold text-[#525252] uppercase tracking-[0.15em] mb-4">Training Readiness — Example</p>
+        <div className="rounded-[24px] border border-stroke bg-surface p-4">
+          <p className="text-[9px] font-bold text-muted uppercase tracking-[0.15em] mb-4">Training Readiness — Example</p>
           <div className="h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={mockRecoveryHistory}>
@@ -155,8 +155,8 @@ export default function RecoveryPage() {
         </div>
 
         {/* CTL/ATL */}
-        <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-4">
-          <p className="text-[9px] font-bold text-[#525252] uppercase tracking-[0.15em] mb-4">Training Load History — Example</p>
+        <div className="rounded-[24px] border border-stroke bg-surface p-4">
+          <p className="text-[9px] font-bold text-muted uppercase tracking-[0.15em] mb-4">Training Load History — Example</p>
           <div className="h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={mockCTLHistory}>

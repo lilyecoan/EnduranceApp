@@ -13,12 +13,12 @@ interface CoachCardProps {
 
 const styles = {
   info: {
-    card: "border-[#CE0E2D]/20 bg-[#CE0E2D]/5",
+    card: "border-lime/20 bg-lime/5",
     icon: Info,
-    iconBg: "bg-[#CE0E2D]/15",
-    iconColor: "text-[#CE0E2D]",
-    badge: "bg-[#CE0E2D]/10 text-[#CE0E2D] border border-[#CE0E2D]/20",
-    bar: "from-[#CE0E2D] to-[#E31837]",
+    iconBg: "bg-lime/15",
+    iconColor: "text-lime",
+    badge: "bg-lime/10 text-lime border border-lime/20",
+    bar: "from-lime to-lime",
   },
   success: {
     card: "border-[#16a34a]/20 bg-[#16a34a]/5",
@@ -37,12 +37,12 @@ const styles = {
     bar: "from-[#d97706] to-[#fbbf24]",
   },
   alert: {
-    card: "border-[#CE0E2D]/30 bg-[#CE0E2D]/8",
+    card: "border-lime/30 bg-lime/8",
     icon: AlertTriangle,
-    iconBg: "bg-[#CE0E2D]/20",
-    iconColor: "text-[#CE0E2D]",
-    badge: "bg-[#CE0E2D]/15 text-[#CE0E2D] border border-[#CE0E2D]/30",
-    bar: "from-[#CE0E2D] to-[#9B0A21]",
+    iconBg: "bg-lime/20",
+    iconColor: "text-lime",
+    badge: "bg-lime/15 text-lime border border-lime/30",
+    bar: "from-lime to-lime",
   },
 };
 
@@ -59,7 +59,7 @@ export function CoachCard({
   const Icon = s.icon;
 
   return (
-    <div className={cn("rounded-xl border p-4", s.card, className)}>
+    <div className={cn("rounded-[24px] border p-4", s.card, className)}>
       <div className="flex items-start gap-3">
         <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5", s.iconBg)}>
           <Icon className={cn("w-4 h-4", s.iconColor)} />
@@ -73,12 +73,12 @@ export function CoachCard({
               </span>
             )}
           </div>
-          <p className="text-[13px] text-[#a3a3a3] leading-relaxed">{message}</p>
+          <p className="text-[13px] text-fg/80 leading-relaxed">{message}</p>
           {metrics && metrics.length > 0 && (
             <div className="flex flex-wrap gap-4 mt-3 pt-3 border-t border-[#ffffff]/5">
               {metrics.map((m) => (
                 <div key={m.label}>
-                  <div className="text-[9px] text-[#525252] uppercase tracking-wider">{m.label}</div>
+                  <div className="text-[9px] text-muted uppercase tracking-wider">{m.label}</div>
                   <div className="text-xs font-bold text-white mt-0.5">{m.value}</div>
                 </div>
               ))}
@@ -86,9 +86,9 @@ export function CoachCard({
           )}
           {confidence !== undefined && (
             <div className="flex items-center gap-2 mt-2.5">
-              <Zap className="w-3 h-3 text-[#404040]" />
-              <span className="text-[10px] text-[#525252]">Confidence {Math.round(confidence * 100)}%</span>
-              <div className="flex-1 h-0.5 bg-[#1a1a1a] rounded-full overflow-hidden">
+              <Zap className="w-3 h-3 text-muted/70" />
+              <span className="text-[10px] text-muted">Confidence {Math.round(confidence * 100)}%</span>
+              <div className="flex-1 h-0.5 bg-surface2 rounded-full overflow-hidden">
                 <div
                   className={cn("h-full bg-gradient-to-r rounded-full", s.bar)}
                   style={{ width: `${confidence * 100}%` }}

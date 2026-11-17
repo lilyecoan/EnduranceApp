@@ -78,14 +78,14 @@ export function UnitsToggle({ className = "" }: { className?: string }) {
       onClick={() => setUnits(value)}
       aria-pressed={units === value}
       className={`px-3 py-1 text-[11px] font-bold rounded-md transition-colors ${
-        units === value ? "bg-[#CE0E2D] text-white" : "text-[#737373] hover:text-white"
+        units === value ? "bg-lime text-ink" : "text-muted hover:text-white"
       }`}
     >
       {label}
     </button>
   );
   return (
-    <div className={`inline-flex items-center gap-0.5 p-0.5 rounded-lg border border-[#262626] bg-[#0d0d0d] ${className}`}>
+    <div className={`inline-flex items-center gap-0.5 p-0.5 rounded-lg border border-stroke bg-bg ${className}`}>
       {option("imperial", "Customary (lb, mi)")}
       {option("metric", "Metric (kg, km)")}
     </div>

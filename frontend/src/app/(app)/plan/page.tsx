@@ -24,9 +24,10 @@ const sportIcon: Record<string, React.ElementType> = {
 };
 
 const sportStyle: Record<string, { border: string; bg: string; dot: string; label: string }> = {
-  Swim: { border: "border-[#2563eb]/30", bg: "bg-[#2563eb]/5",   dot: "bg-[#60a5fa]", label: "text-[#60a5fa]" },
-  Bike: { border: "border-[#d97706]/30", bg: "bg-[#d97706]/5",   dot: "bg-[#fbbf24]", label: "text-[#fbbf24]" },
-  Run:  { border: "border-[#CE0E2D]/30", bg: "bg-[#CE0E2D]/5",   dot: "bg-[#f87171]", label: "text-[#f87171]" },
+  // Sport colors follow the race-day leg bar: swim blue, bike lime, run off-white.
+  Swim: { border: "border-swim/30", bg: "bg-swim/5", dot: "bg-swim", label: "text-swim" },
+  Bike: { border: "border-lime/30", bg: "bg-lime/5", dot: "bg-lime", label: "text-lime" },
+  Run:  { border: "border-fg/20", bg: "bg-fg/[0.03]", dot: "bg-fg", label: "text-fg" },
 };
 
 const intensityBadge: Record<string, string> = {
@@ -34,7 +35,7 @@ const intensityBadge: Record<string, string> = {
   "Zone 2":   "bg-[#14532d] text-[#4ade80] border-[#16a34a]/30",
   "Zone 3":   "bg-[#713f12] text-[#fbbf24] border-[#d97706]/30",
   "Zone 3–4": "bg-[#7c2d12] text-[#fb923c] border-[#ea580c]/30",
-  "Zone 4":   "bg-[#7f1d1d] text-[#f87171] border-[#CE0E2D]/30",
+  "Zone 4":   "bg-[#7f1d1d] text-[#f87171] border-lime/30",
   "Zone 2–3": "bg-[#134e4a] text-[#34d399] border-[#059669]/30",
 };
 
@@ -52,13 +53,13 @@ function SessionStatus({ state, onLog }: { state: SessionState | undefined; onLo
           {log.status === "skipped" ? "Skipped" : `Done${log.actual_duration_min ? ` · ${Math.round(log.actual_duration_min)}m` : ""}${log.actual_distance_m ? ` · ${dist(log.actual_distance_m)}` : ""}${log.rpe ? ` · RPE ${log.rpe}` : ""} · load ${log.load}`}
         </span>
       ) : adjusted ? (
-        <span className="text-[10px] font-bold text-white bg-[#1a1a1a] border border-dashed border-[#e5484d]/60 px-2 py-0.5 rounded">
+        <span className="text-[10px] font-bold text-white bg-surface2 border border-dashed border-[#e5484d]/60 px-2 py-0.5 rounded">
           Adjusted: {adjusted.duration_min}m{adjusted.distance_m ? ` · ${dist(adjusted.distance_m)}` : ""} · load {adjusted.load}
         </span>
       ) : notLogged ? (
-        <span className="text-[10px] text-[#525252]">Not logged</span>
+        <span className="text-[10px] text-muted">Not logged</span>
       ) : null}
-      {log?.notes && <span className="text-[10px] text-[#737373] italic truncate max-w-[260px]">“{log.notes}”</span>}
+      {log?.notes && <span className="text-[10px] text-muted italic truncate max-w-[260px]">“{log.notes}”</span>}
       {(log || notLogged || state.session.date <= isoDate(new Date())) && (
         <button onClick={onLog} className="inline-flex items-center gap-1 text-[10px] font-bold text-[#60a5fa] hover:underline">
           <NotebookPen className="w-3 h-3" /> {log ? "Edit log" : "Log it"}
@@ -115,24 +116,24 @@ export default function PlanPage() {
   const weekHours = mockWeeklyPlan.reduce((s, d) => s + (d.workout?.duration_min ?? 0) + (d.strength?.duration_min ?? 0), 0) / 60;
 
   return (
-    <div className="p-6 max-w-7xl">
+    <div className="px-5 py-7 lg:px-10 lg:py-8 max-w-7xl">
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <p className="text-[10px] font-bold text-[#CE0E2D] uppercase tracking-[0.2em] mb-1">Weekly Schedule</p>
-          <h1 className="text-2xl font-black text-white tracking-tight">Training Plan</h1>
-          <p className="text-sm text-[#525252] mt-0.5">
+          <p className="text-sm font-medium text-muted mb-1.5">Weekly Schedule</p>
+          <h1 className="text-[30px] font-semibold text-fg tracking-[-0.9px]">Training Plan</h1>
+          <p className="text-sm text-muted mt-0.5">
             Example week · {new Date(dates[0] + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}–{new Date(dates[6] + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
           </p>
         </div>
         <div className="flex gap-5">
           <div className="text-right">
-            <div className="text-2xl font-black text-white">{weekTSS}</div>
-            <div className="text-[9px] text-[#525252] font-bold uppercase tracking-widest">TSS</div>
+            <div className="text-2xl font-semibold text-white">{weekTSS}</div>
+            <div className="text-[9px] text-muted font-bold uppercase tracking-widest">TSS</div>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-black text-white">{weekHours.toFixed(1)}h</div>
-            <div className="text-[9px] text-[#525252] font-bold uppercase tracking-widest">Volume</div>
+            <div className="text-2xl font-semibold text-white">{weekHours.toFixed(1)}h</div>
+            <div className="text-[9px] text-muted font-bold uppercase tracking-widest">Volume</div>
           </div>
         </div>
       </div>
@@ -145,11 +146,11 @@ export default function PlanPage() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] items-start">
       <div className="min-w-0">
       {/* Phase banner */}
-      <div className="rounded-xl border border-[#CE0E2D]/20 bg-[#CE0E2D]/5 p-4 mb-6 flex items-center gap-4">
-        <div className="w-1 h-12 bg-[#CE0E2D] rounded-full flex-shrink-0" />
+      <div className="rounded-[24px] border border-lime/20 bg-lime/5 p-4 mb-6 flex items-center gap-4">
+        <div className="w-1 h-12 bg-lime rounded-full flex-shrink-0" />
         <div>
-          <div className="text-sm font-black text-white mb-0.5">Base Phase — Swim-Heavy + Strength Foundation</div>
-          <p className="text-xs text-[#737373] leading-relaxed">
+          <div className="text-sm font-semibold text-white mb-0.5">Base Phase — Swim-Heavy + Strength Foundation</div>
+          <p className="text-xs text-muted leading-relaxed">
             3 swims · 2 bikes · 1 run · 2 strength doubles. Mon and Sun are double days — swim first, strength after a short rest.
             Saturday long ride is the key endurance session.
           </p>
@@ -161,15 +162,15 @@ export default function PlanPage() {
         {mockWeeklyPlan.map((day) => {
           if (day.rest || !day.workout) {
             return (
-              <div key={day.day} className="rounded-xl border border-[#1e1e1e] bg-[#111] p-4 flex items-center gap-4">
+              <div key={day.day} className="rounded-[24px] border border-stroke bg-surface p-4 flex items-center gap-4">
                 <div className="w-14 text-center flex-shrink-0">
-                  <div className="text-sm font-black text-[#404040]">{day.day}</div>
-                  <div className="text-[9px] text-[#303030]">{new Date(dates[mockWeeklyPlan.indexOf(day)] + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>
+                  <div className="text-sm font-semibold text-muted/70">{day.day}</div>
+                  <div className="text-[9px] text-muted/70">{new Date(dates[mockWeeklyPlan.indexOf(day)] + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>
                 </div>
-                <Coffee className="w-4 h-4 text-[#404040]" />
+                <Coffee className="w-4 h-4 text-muted/70" />
                 <div>
-                  <div className="text-sm font-bold text-[#404040]">Rest Day</div>
-                  <div className="text-[11px] text-[#333]">Walk, mobility, or full rest. Recovery is training.</div>
+                  <div className="text-sm font-bold text-muted/70">Rest Day</div>
+                  <div className="text-[11px] text-muted/70">Walk, mobility, or full rest. Recovery is training.</div>
                 </div>
               </div>
             );
@@ -184,14 +185,14 @@ export default function PlanPage() {
           return (
             <div key={day.day} className="space-y-1.5">
               {/* Primary workout */}
-              <div className={cn("rounded-xl border p-4 transition-all", ss.border, ss.bg)}>
+              <div className={cn("rounded-[24px] border p-4 transition-all", ss.border, ss.bg)}>
                 <div className="flex items-start gap-4">
                   {/* Day */}
                   <div className="w-14 flex-shrink-0 text-center">
-                    <div className="text-sm font-black text-white">{day.day}</div>
-                    <div className="text-[9px] text-[#525252]">{new Date(dates[mockWeeklyPlan.indexOf(day)] + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>
+                    <div className="text-sm font-semibold text-white">{day.day}</div>
+                    <div className="text-[9px] text-muted">{new Date(dates[mockWeeklyPlan.indexOf(day)] + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>
                     {str && (
-                      <div className="text-[8px] font-black text-[#CE0E2D] uppercase tracking-wider mt-1">AM</div>
+                      <div className="text-[8px] font-semibold text-lime uppercase tracking-wider mt-1">AM</div>
                     )}
                   </div>
 
@@ -208,13 +209,13 @@ export default function PlanPage() {
                       <span className={cn("text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border", ib)}>
                         {w.intensity}
                       </span>
-                      <span className="text-[9px] text-[#404040] font-bold bg-[#151515] px-2 py-0.5 rounded">TSS {w.tss}</span>
+                      <span className="text-[9px] text-muted/70 font-bold bg-surface2 px-2 py-0.5 rounded">TSS {w.tss}</span>
                     </div>
-                    <p className="text-[12px] text-[#737373] leading-relaxed">{w.notes}</p>
+                    <p className="text-[12px] text-muted leading-relaxed">{w.notes}</p>
                     <SessionStatus state={stateFor(`${dates[mockWeeklyPlan.indexOf(day)]}:main`)} onLog={() => openLog(`${dates[mockWeeklyPlan.indexOf(day)]}:main`)} />
 
                     {"fueling" in w && w.fueling && (
-                      <div className="flex gap-4 text-[9px] text-[#525252] bg-[#151515] rounded-lg px-3 py-2 mt-2 font-medium">
+                      <div className="flex gap-4 text-[9px] text-muted bg-surface2 rounded-lg px-3 py-2 mt-2 font-medium">
                         <span>🍬 {w.fueling.carbs_per_hour}g/hr GF carbs</span>
                         <span>💧 {formatFluidPerHour(ozToMl(w.fueling.water_oz_per_hour), units)}</span>
                         <span>🧂 {w.fueling.sodium_mg_per_hour}mg Na/hr</span>
@@ -225,19 +226,19 @@ export default function PlanPage() {
                   {/* Stats */}
                   <div className="flex gap-4 flex-shrink-0 text-right">
                     <div>
-                      <div className="text-sm font-black text-white">{w.duration_min}m</div>
-                      <div className="text-[9px] text-[#404040] font-bold uppercase">Time</div>
+                      <div className="text-sm font-semibold text-white">{w.duration_min}m</div>
+                      <div className="text-[9px] text-muted/70 font-bold uppercase">Time</div>
                     </div>
                     {"distance_yards" in w && w.distance_yards && (
                       <div>
-                        <div className="text-sm font-black text-white">{formatShortDistance(yardsToMeters(w.distance_yards), units)}</div>
-                        <div className="text-[9px] text-[#404040] font-bold uppercase">Dist</div>
+                        <div className="text-sm font-semibold text-white">{formatShortDistance(yardsToMeters(w.distance_yards), units)}</div>
+                        <div className="text-[9px] text-muted/70 font-bold uppercase">Dist</div>
                       </div>
                     )}
                     {"distance_mi" in w && w.distance_mi && (
                       <div>
-                        <div className="text-sm font-black text-white">{formatDistance(milesToMeters(w.distance_mi), units)}</div>
-                        <div className="text-[9px] text-[#404040] font-bold uppercase">Dist</div>
+                        <div className="text-sm font-semibold text-white">{formatDistance(milesToMeters(w.distance_mi), units)}</div>
+                        <div className="text-[9px] text-muted/70 font-bold uppercase">Dist</div>
                       </div>
                     )}
                   </div>
@@ -246,11 +247,11 @@ export default function PlanPage() {
 
               {/* Strength session (double day) */}
               {str && (
-                <div className="rounded-xl border border-[#7c3aed]/20 bg-[#7c3aed]/5 p-4 ml-4">
+                <div className="rounded-[24px] border border-[#7c3aed]/20 bg-[#7c3aed]/5 p-4 ml-4">
                   <div className="flex items-start gap-4">
                     {/* PM label */}
                     <div className="w-10 flex-shrink-0 text-center pt-0.5">
-                      <div className="text-[8px] font-black text-[#a78bfa] uppercase tracking-wider">PM</div>
+                      <div className="text-[8px] font-semibold text-[#a78bfa] uppercase tracking-wider">PM</div>
                     </div>
 
                     {/* Icon */}
@@ -266,16 +267,16 @@ export default function PlanPage() {
                         <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border bg-[#4a1d96] text-[#c4b5fd] border-[#7c3aed]/30">
                           {str.focus === "lower" ? "Lower Body" : "Full Body"}
                         </span>
-                        <span className="text-[9px] text-[#404040] font-bold bg-[#151515] px-2 py-0.5 rounded">TSS {str.tss}</span>
+                        <span className="text-[9px] text-muted/70 font-bold bg-surface2 px-2 py-0.5 rounded">TSS {str.tss}</span>
                       </div>
-                      <p className="text-[12px] text-[#737373] leading-relaxed">{str.notes}</p>
+                      <p className="text-[12px] text-muted leading-relaxed">{str.notes}</p>
                       <SessionStatus state={stateFor(`${dates[mockWeeklyPlan.indexOf(day)]}:strength`)} onLog={() => openLog(`${dates[mockWeeklyPlan.indexOf(day)]}:strength`)} />
                     </div>
 
                     {/* Duration */}
                     <div className="flex-shrink-0 text-right">
-                      <div className="text-sm font-black text-white">{str.duration_min}m</div>
-                      <div className="text-[9px] text-[#404040] font-bold uppercase">Time</div>
+                      <div className="text-sm font-semibold text-white">{str.duration_min}m</div>
+                      <div className="text-[9px] text-muted/70 font-bold uppercase">Time</div>
                     </div>
                   </div>
                 </div>
@@ -293,10 +294,10 @@ export default function PlanPage() {
           { label: "🏃 Run",      time: "40m",    vol: "3.4mi · 1×",    color: "text-[#f87171]" },
           { label: "💪 Strength", time: "1h 10m", vol: "2 doubles",      color: "text-[#a78bfa]" },
         ].map((s) => (
-          <div key={s.label} className="rounded-xl border border-[#1e1e1e] bg-[#111] p-3 text-center">
+          <div key={s.label} className="rounded-[24px] border border-stroke bg-surface p-3 text-center">
             <div className={cn("text-xs font-bold", s.color)}>{s.label}</div>
-            <div className="text-lg font-black text-white mt-1">{s.time}</div>
-            <div className="text-[9px] text-[#525252]">{s.vol}</div>
+            <div className="text-lg font-semibold text-white mt-1">{s.time}</div>
+            <div className="text-[9px] text-muted">{s.vol}</div>
           </div>
         ))}
       </div>
@@ -309,7 +310,7 @@ export default function PlanPage() {
             <WorkoutLogPanel sessions={sessions} logs={logs} selectedKey={selectedKey} onSelect={setSelectedKey}
               onChanged={onLogChanged} todayIso={todayIso} />
           ) : (
-            <p className="text-xs text-[#525252]">Sign in to log workouts.</p>
+            <p className="text-xs text-muted">Sign in to log workouts.</p>
           )}
           {logError && <p className="text-[11px] text-[#f87171] mt-2">Couldn&apos;t load your logs. Refresh to try again.</p>}
         </div>

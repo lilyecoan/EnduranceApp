@@ -40,10 +40,10 @@ export function ScoreRing({ score, label, size = 100, strokeWidth = 7, className
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className={cn("text-xl font-black tabular-nums", textColor)}>{score}</span>
+          <span className={cn("text-xl font-semibold tabular-nums", textColor)}>{score}</span>
         </div>
       </div>
-      <span className="text-[10px] text-[#525252] font-semibold uppercase tracking-wider">{label}</span>
+      <span className="text-[10px] text-muted font-semibold uppercase tracking-wider">{label}</span>
     </div>
   );
 }

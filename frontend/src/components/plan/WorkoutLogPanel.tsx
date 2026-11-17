@@ -22,7 +22,7 @@ const RPE_LABELS: Record<number, string> = {
 };
 
 const inputCls =
-  "w-full text-sm bg-[#0d0d0d] border border-[#262626] rounded-lg px-3 py-2 text-white placeholder:text-[#404040] focus:outline-none focus:border-[#404040]";
+  "w-full text-sm bg-bg border border-stroke rounded-lg px-3 py-2 text-white placeholder:text-muted/60 focus:outline-none focus:border-muted";
 
 type Props = {
   sessions: Session[];
@@ -123,13 +123,13 @@ export function WorkoutLogPanel({ sessions, logs, selectedKey, onSelect, onChang
   const loggable = sessions.filter((s) => s.date <= todayIso);
 
   return (
-    <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-4">
+    <div className="rounded-[24px] border border-stroke bg-surface p-4">
       <div className="flex items-center gap-2 mb-3">
         <NotebookPen className="w-4 h-4 text-[#60a5fa]" />
-        <h3 className="text-sm font-black text-white">Log a workout</h3>
+        <h3 className="text-sm font-semibold text-white">Log a workout</h3>
       </div>
 
-      <label className="block text-[11px] font-bold text-[#737373] space-y-1 mb-3">
+      <label className="block text-[11px] font-bold text-muted space-y-1 mb-3">
         <span>Session</span>
         <select className={inputCls} value={selectedKey} onChange={(e) => onSelect(e.target.value)}>
           {loggable.map((s) => {
@@ -145,7 +145,7 @@ export function WorkoutLogPanel({ sessions, logs, selectedKey, onSelect, onChang
       </label>
 
       {session && !isExtra && (
-        <p className="text-[11px] text-[#525252] mb-3">
+        <p className="text-[11px] text-muted mb-3">
           Planned: {session.duration_min} min
           {session.distance_m ? ` · ${swim ? formatShortDistance(session.distance_m, units) : formatDistance(session.distance_m, units)}` : ""}
           {` · load ${session.load}`}
@@ -154,11 +154,11 @@ export function WorkoutLogPanel({ sessions, logs, selectedKey, onSelect, onChang
 
       {isExtra && (
         <div className="grid grid-cols-2 gap-2 mb-3">
-          <label className="text-[11px] font-bold text-[#737373] space-y-1">
+          <label className="text-[11px] font-bold text-muted space-y-1">
             <span>Date</span>
             <input type="date" className={inputCls} value={extraDate} max={todayIso} onChange={(e) => setExtraDate(e.target.value)} />
           </label>
-          <label className="text-[11px] font-bold text-[#737373] space-y-1">
+          <label className="text-[11px] font-bold text-muted space-y-1">
             <span>Sport</span>
             <select className={inputCls} value={form.sport} onChange={(e) => setForm({ ...form, sport: e.target.value })}>
               {["Swim", "Bike", "Run", "Strength", "Other"].map((s) => <option key={s}>{s}</option>)}
@@ -167,10 +167,10 @@ export function WorkoutLogPanel({ sessions, logs, selectedKey, onSelect, onChang
         </div>
       )}
 
-      <div className="inline-flex p-0.5 rounded-lg border border-[#262626] bg-[#0d0d0d] mb-3">
+      <div className="inline-flex p-0.5 rounded-lg border border-stroke bg-bg mb-3">
         {(["completed", "skipped"] as const).map((s) => (
           <button key={s} type="button" aria-pressed={form.status === s} onClick={() => setForm({ ...form, status: s })}
-            className={`px-3 py-1 text-[11px] font-bold rounded-md ${form.status === s ? "bg-[#CE0E2D] text-white" : "text-[#737373] hover:text-white"}`}>
+            className={`px-3 py-1 text-[11px] font-bold rounded-md ${form.status === s ? "bg-lime text-ink" : "text-muted hover:text-white"}`}>
             {s === "completed" ? "Did it" : "Skipped"}
           </button>
         ))}
@@ -179,20 +179,20 @@ export function WorkoutLogPanel({ sessions, logs, selectedKey, onSelect, onChang
       {form.status === "completed" && (
         <>
           <div className="grid grid-cols-3 gap-2 mb-3">
-            <label className="text-[11px] font-bold text-[#737373] space-y-1">
+            <label className="text-[11px] font-bold text-muted space-y-1">
               <span>Time (min)</span>
               <input className={inputCls} type="number" min={0} max={1440} inputMode="numeric" value={form.duration}
                 placeholder={session ? String(session.duration_min) : ""} onChange={(e) => setForm({ ...form, duration: e.target.value })} />
             </label>
             {showDistance && (
-              <label className="text-[11px] font-bold text-[#737373] space-y-1">
+              <label className="text-[11px] font-bold text-muted space-y-1">
                 <span>Distance ({swim ? shortDistanceUnit(units) : distanceUnit(units)})</span>
                 <input className={inputCls} type="number" min={0} step={swim ? 25 : 0.1} inputMode="decimal" value={form.distance}
                   placeholder={session?.distance_m ? String(swim ? metersToDisplayShort(session.distance_m, units) : metersToDisplayDistance(session.distance_m, units)) : ""}
                   onChange={(e) => setForm({ ...form, distance: e.target.value })} />
               </label>
             )}
-            <label className="text-[11px] font-bold text-[#737373] space-y-1">
+            <label className="text-[11px] font-bold text-muted space-y-1">
               <span>Avg HR</span>
               <input className={inputCls} type="number" min={30} max={250} inputMode="numeric" value={form.hr}
                 onChange={(e) => setForm({ ...form, hr: e.target.value })} />
@@ -200,7 +200,7 @@ export function WorkoutLogPanel({ sessions, logs, selectedKey, onSelect, onChang
           </div>
 
           <div className="mb-3">
-            <div className="flex justify-between text-[11px] font-bold text-[#737373] mb-1">
+            <div className="flex justify-between text-[11px] font-bold text-muted mb-1">
               <span>How hard did it feel?</span>
               <span className="text-white">{form.rpe ? `${form.rpe}/10 · ${RPE_LABELS[form.rpe]}` : "Not rated"}</span>
             </div>
@@ -208,7 +208,7 @@ export function WorkoutLogPanel({ sessions, logs, selectedKey, onSelect, onChang
               {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
                 <button key={n} type="button" aria-label={`Effort ${n}: ${RPE_LABELS[n]}`} aria-pressed={form.rpe === n}
                   onClick={() => setForm({ ...form, rpe: form.rpe === n ? null : n })}
-                  className={`h-7 rounded text-[11px] font-bold ${form.rpe === n ? "bg-[#CE0E2D] text-white" : "bg-[#1a1a1a] text-[#737373] hover:text-white"}`}>
+                  className={`h-7 rounded text-[11px] font-bold ${form.rpe === n ? "bg-lime text-ink" : "bg-surface2 text-muted hover:text-white"}`}>
                   {n}
                 </button>
               ))}
@@ -217,7 +217,7 @@ export function WorkoutLogPanel({ sessions, logs, selectedKey, onSelect, onChang
         </>
       )}
 
-      <label className="block text-[11px] font-bold text-[#737373] space-y-1 mb-3">
+      <label className="block text-[11px] font-bold text-muted space-y-1 mb-3">
         <span>Notes</span>
         <textarea className={`${inputCls} min-h-[72px] resize-y`} maxLength={2000} value={form.notes}
           placeholder="How it went: legs, fueling, weather, anything your coach should know"
@@ -226,18 +226,18 @@ export function WorkoutLogPanel({ sessions, logs, selectedKey, onSelect, onChang
 
       <div className="flex items-center gap-2">
         <button onClick={save} disabled={saving || (isExtra && !form.duration)}
-          className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-lg bg-[#CE0E2D] text-white hover:bg-[#b00c27] disabled:opacity-40">
+          className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-full bg-lime text-ink hover:bg-lime/90 disabled:opacity-40">
           <Check className="w-3.5 h-3.5" /> {existing ? "Update log" : "Save log"}
         </button>
         {existing && (
           <button onClick={remove} disabled={saving} aria-label="Remove log"
-            className="flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-lg text-[#737373] hover:text-white">
+            className="flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-lg text-muted hover:text-white">
             <Trash2 className="w-3.5 h-3.5" /> Remove
           </button>
         )}
       </div>
       {status && <p className={`text-[11px] mt-2 ${status.ok ? "text-[#4ade80]" : "text-[#f87171]"}`}>{status.text}</p>}
-      <p className="text-[10px] text-[#404040] mt-2">Your coach reads the past week of logs and notes when it plans your day.</p>
+      <p className="text-[10px] text-muted/70 mt-2">Your coach reads the past week of logs and notes when it plans your day.</p>
     </div>
   );
 }

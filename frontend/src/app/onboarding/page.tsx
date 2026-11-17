@@ -81,10 +81,10 @@ const GUIDES: Record<Exclude<DeviceId, "none">, Guide> = {
 };
 
 const inputCls =
-  "w-full text-sm bg-[#0d0d0d] border border-[#262626] rounded-lg px-3 py-2 text-white placeholder:text-[#404040] focus:outline-none focus:border-[#404040]";
+  "w-full text-sm bg-bg border border-stroke rounded-lg px-3 py-2 text-white placeholder:text-muted/60 focus:outline-none focus:border-muted";
 const primaryCls =
-  "flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-lg bg-[#CE0E2D] text-white hover:bg-[#b00c27] disabled:opacity-40";
-const ghostCls = "flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-lg text-[#737373] hover:text-white";
+  "flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-full bg-lime text-ink hover:bg-lime/90 disabled:opacity-40";
+const ghostCls = "flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-lg text-muted hover:text-white";
 
 function Onboarding() {
   const router = useRouter();
@@ -149,45 +149,45 @@ function Onboarding() {
   const guide = device && device !== "none" ? GUIDES[device] : null;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex justify-center px-4 py-10">
+    <div className="min-h-screen bg-bg flex justify-center px-4 py-10">
       <div className="w-full max-w-2xl">
-        <p className="text-[10px] font-bold text-[#CE0E2D] uppercase tracking-[0.2em] mb-1">Welcome to IronMind</p>
+        <p className="text-sm font-medium text-muted mb-1.5">Welcome to IronMind</p>
         <div className="flex items-start justify-between">
-          <h1 className="text-2xl font-black text-white tracking-tight mb-1">Let&apos;s set up your coaching</h1>
+          <h1 className="text-[30px] font-semibold text-fg tracking-[-0.9px] mb-1">Let&apos;s set up your coaching</h1>
           <button className={ghostCls} disabled={saving} onClick={finish}>Skip setup</button>
         </div>
         <div className="flex items-center gap-2 mb-6">
           {["About you", "Your goal", "Your training data", "Done"].map((label, i) => (
             <div key={label} className="flex items-center gap-2">
-              <span className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center ${
-                step > i + 1 ? "bg-[#16a34a] text-white" : step === i + 1 ? "bg-[#CE0E2D] text-white" : "bg-[#1a1a1a] text-[#404040]"}`}>
+              <span className={`w-5 h-5 rounded-full text-[10px] font-semibold flex items-center justify-center ${
+                step > i + 1 ? "bg-[#16a34a] text-white" : step === i + 1 ? "bg-lime text-ink" : "bg-surface2 text-muted/70"}`}>
                 {step > i + 1 ? <Check className="w-3 h-3" /> : i + 1}
               </span>
-              <span className={`text-[11px] font-bold ${step === i + 1 ? "text-white" : "text-[#404040]"}`}>{label}</span>
+              <span className={`text-[11px] font-bold ${step === i + 1 ? "text-white" : "text-muted/70"}`}>{label}</span>
               {i < 3 && <span className="w-6 h-px bg-[#262626]" />}
             </div>
           ))}
         </div>
 
         {step === 1 && (
-          <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-6 space-y-4">
-            <p className="text-sm text-[#a3a3a3]">A few basics so recommendations fit you. You can change these later in Profile.</p>
+          <div className="rounded-[24px] border border-stroke bg-surface p-6 space-y-4">
+            <p className="text-sm text-fg/80">A few basics so recommendations fit you. You can change these later in Profile.</p>
             <div className="flex items-center gap-3">
-              <span className="text-[11px] font-bold text-[#737373]">Units</span>
+              <span className="text-[11px] font-bold text-muted">Units</span>
               <UnitsToggle />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <label className="text-[11px] font-bold text-[#737373] space-y-1">
+              <label className="text-[11px] font-bold text-muted space-y-1">
                 <span>Age</span>
                 <input className={inputCls} type="number" min={13} max={100} value={about.age}
                   onChange={(e) => setAbout({ ...about, age: e.target.value })} />
               </label>
-              <label className="text-[11px] font-bold text-[#737373] space-y-1">
+              <label className="text-[11px] font-bold text-muted space-y-1">
                 <span>Weight ({weightUnit(units)})</span>
                 <input className={inputCls} type="number" min={25} max={550} step="0.1" value={about.weight}
                   onChange={(e) => setAbout({ ...about, weight: e.target.value })} />
               </label>
-              <label className="text-[11px] font-bold text-[#737373] space-y-1">
+              <label className="text-[11px] font-bold text-muted space-y-1">
                 <span>Cycling FTP (watts, optional)</span>
                 <input className={inputCls} type="number" min={50} max={600} value={about.ftp_watts}
                   onChange={(e) => setAbout({ ...about, ftp_watts: e.target.value })} />
@@ -201,13 +201,13 @@ function Onboarding() {
                 ["dietary_restrictions", "Dietary restrictions", "e.g. celiac / gluten-free, vegetarian, nut allergy"],
               ] as const
             ).map(([key, label, placeholder]) => (
-              <label key={key} className="block text-[11px] font-bold text-[#737373] space-y-1">
-                <span>{label} <span className="font-normal text-[#525252]">(optional)</span></span>
+              <label key={key} className="block text-[11px] font-bold text-muted space-y-1">
+                <span>{label} <span className="font-normal text-muted">(optional)</span></span>
                 <textarea className={`${inputCls} min-h-[64px] resize-y`} maxLength={2000} placeholder={placeholder}
                   value={about[key]} onChange={(e) => setAbout({ ...about, [key]: e.target.value })} />
               </label>
             ))}
-            <p className="text-[10px] text-[#525252]">
+            <p className="text-[10px] text-muted">
               Only you and your coaching plan use this. It isn&apos;t medical advice — check changes with your doctor.
             </p>
             {error && <p className="text-xs text-[#f87171]">{error}</p>}
@@ -221,21 +221,21 @@ function Onboarding() {
         )}
 
         {step === 2 && (
-          <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-6 space-y-4">
-            <p className="text-sm text-[#a3a3a3]">What are you training for?</p>
+          <div className="rounded-[24px] border border-stroke bg-surface p-6 space-y-4">
+            <p className="text-sm text-fg/80">What are you training for?</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {GOALS.map((g) => (
                 <button key={g.id} type="button" onClick={() => chooseGoal(g.id)} aria-pressed={goal === g.id}
                   className={`text-left text-xs font-bold px-3 py-2.5 rounded-lg border ${goal === g.id
-                    ? "border-[#CE0E2D] bg-[#CE0E2D]/10 text-white" : "border-[#262626] bg-[#151515] text-[#a3a3a3] hover:border-[#404040]"}`}>
+                    ? "border-lime bg-lime/10 text-fg" : "border-stroke bg-surface2 text-fg/80 hover:border-muted"}`}>
                   {g.label}
                 </button>
               ))}
             </div>
             {goalError && <p className="text-xs text-[#f87171]">{goalError}</p>}
             {goal && GOALS.find((g) => g.id === goal)?.race && (
-              <div className="border-t border-[#1e1e1e] pt-4">
-                <p className="text-sm text-[#a3a3a3] mb-3">
+              <div className="border-t border-stroke pt-4">
+                <p className="text-sm text-fg/80 mb-3">
                   Signed up already? Add the race and we&apos;ll build a race-day nutrition plan for it.
                 </p>
                 <RaceSetupForm key={goal} race={null} goal={goal} onSaved={() => setStep(3)} submitLabel="Save race & continue" />
@@ -255,45 +255,45 @@ function Onboarding() {
         {step === 3 && (
           <div className="space-y-4">
             {!device && !returnedFrom && (
-              <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-6">
-                <p className="text-sm text-[#a3a3a3] mb-4">What do you train with? We&apos;ll show you the easiest way to bring your data in.</p>
+              <div className="rounded-[24px] border border-stroke bg-surface p-6">
+                <p className="text-sm text-fg/80 mb-4">What do you train with? We&apos;ll show you the easiest way to bring your data in.</p>
                 <div className="grid sm:grid-cols-2 gap-3">
                   {(Object.entries(GUIDES) as [Exclude<DeviceId, "none">, Guide][]).map(([id, g]) => (
                     <button key={id} onClick={() => setDevice(id)}
-                      className="text-left p-4 rounded-lg border border-[#262626] bg-[#151515] hover:border-[#404040]">
+                      className="text-left p-4 rounded-lg border border-stroke bg-surface2 hover:border-muted">
                       <g.icon className="w-4 h-4 text-[#60a5fa] mb-2" />
-                      <div className="text-sm font-black text-white">{g.label}</div>
-                      <div className="text-[11px] text-[#525252]">{g.hint}</div>
+                      <div className="text-sm font-semibold text-white">{g.label}</div>
+                      <div className="text-[11px] text-muted">{g.hint}</div>
                     </button>
                   ))}
                   <button onClick={() => setStep(4)}
-                    className="text-left p-4 rounded-lg border border-dashed border-[#262626] hover:border-[#404040]">
-                    <div className="text-sm font-black text-[#a3a3a3]">No device / set up later</div>
-                    <div className="text-[11px] text-[#525252]">You&apos;ll see demo data until you connect something</div>
+                    className="text-left p-4 rounded-lg border border-dashed border-stroke hover:border-muted">
+                    <div className="text-sm font-semibold text-fg/80">No device / set up later</div>
+                    <div className="text-[11px] text-muted">You&apos;ll see demo data until you connect something</div>
                   </button>
                 </div>
               </div>
             )}
 
             {guide && (
-              <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-6">
-                <h2 className="text-sm font-black text-white mb-3">{guide.label}: how to connect</h2>
+              <div className="rounded-[24px] border border-stroke bg-surface p-6">
+                <h2 className="text-sm font-semibold text-white mb-3">{guide.label}: how to connect</h2>
                 <ol className="space-y-2 mb-3">
                   {guide.steps.map((s, i) => (
-                    <li key={i} className="flex gap-3 text-xs text-[#a3a3a3]">
-                      <span className="w-5 h-5 rounded-full bg-[#1a1a1a] text-[10px] font-black text-[#737373] flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                    <li key={i} className="flex gap-3 text-xs text-fg/80">
+                      <span className="w-5 h-5 rounded-full bg-surface2 text-[10px] font-semibold text-muted flex items-center justify-center flex-shrink-0">{i + 1}</span>
                       <span className="pt-0.5">{s}</span>
                     </li>
                   ))}
                 </ol>
                 {guide.alternative && (
-                  <div className="border-t border-[#1e1e1e] pt-3">
-                    <button className="text-[11px] font-bold text-[#737373] hover:text-white" onClick={() => setShowAlt((v) => !v)}>
+                  <div className="border-t border-stroke pt-3">
+                    <button className="text-[11px] font-bold text-muted hover:text-white" onClick={() => setShowAlt((v) => !v)}>
                       {showAlt ? "▾" : "▸"} {guide.alternative.label}
                     </button>
                     {showAlt && (
                       <ul className="mt-2 space-y-1.5 list-disc pl-5">
-                        {guide.alternative.steps.map((s, i) => <li key={i} className="text-xs text-[#a3a3a3]">{s}</li>)}
+                        {guide.alternative.steps.map((s, i) => <li key={i} className="text-xs text-fg/80">{s}</li>)}
                       </ul>
                     )}
                   </div>
@@ -319,9 +319,9 @@ function Onboarding() {
         )}
 
         {step === 4 && (
-          <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-6 space-y-3">
-            <h2 className="text-lg font-black text-white">You&apos;re set</h2>
-            <p className="text-sm text-[#a3a3a3]">
+          <div className="rounded-[24px] border border-stroke bg-surface p-6 space-y-3">
+            <h2 className="text-lg font-semibold text-white">You&apos;re set</h2>
+            <p className="text-sm text-fg/80">
               Your dashboard uses your own data wherever you&apos;ve connected it, and clearly labeled demo data everywhere
               else. You can add or remove data sources any time in <b>Settings</b>.
             </p>

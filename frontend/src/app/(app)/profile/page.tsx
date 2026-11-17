@@ -68,7 +68,7 @@ function hrZonesFor(maxHr: number) {
     { zone: "Z2", name: "Aerobic Base", pct: "60–75% HR", range: `${pct(0.6)}–${pct(0.75)} bpm`, bar: "bg-[#14532d]" },
     { zone: "Z3", name: "Tempo", pct: "75–83% HR", range: `${pct(0.75)}–${pct(0.83)} bpm`, bar: "bg-[#713f12]" },
     { zone: "Z4", name: "Threshold", pct: "83–90% HR", range: `${pct(0.83)}–${pct(0.9)} bpm`, bar: "bg-[#7c2d12]" },
-    { zone: "Z5", name: "VO₂ Max", pct: "> 90% HR", range: `> ${pct(0.9)} bpm`, bar: "bg-[#CE0E2D]/80" },
+    { zone: "Z5", name: "VO₂ Max", pct: "> 90% HR", range: `> ${pct(0.9)} bpm`, bar: "bg-lime/80" },
   ];
 }
 
@@ -136,24 +136,24 @@ export default function ProfilePage() {
   const performance = plan?.performance;
 
   if (loading) {
-    return <div className="p-6 text-sm text-[#525252]">Loading profile…</div>;
+    return <div className="px-5 py-7 lg:px-10 lg:py-8 text-sm text-muted">Loading profile…</div>;
   }
 
   return (
-    <div className="p-6 max-w-4xl">
+    <div className="px-5 py-7 lg:px-10 lg:py-8 max-w-4xl">
       {/* Header */}
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <p className="text-[10px] font-bold text-[#CE0E2D] uppercase tracking-[0.2em] mb-1">Athlete Profile</p>
-          <h1 className="text-2xl font-black text-white tracking-tight">{displayName}</h1>
-          <p className="text-sm text-[#525252] mt-0.5">
+          <p className="text-sm font-medium text-muted mb-1.5">Athlete Profile</p>
+          <h1 className="text-[30px] font-semibold text-fg tracking-[-0.9px]">{displayName}</h1>
+          <p className="text-sm text-muted mt-0.5">
             {profile?.primary_race_name ? `Race goal: ${profile.primary_race_name}` : "No race goal set yet"}
           </p>
         </div>
         {!editing && (
           <button
             onClick={() => setEditing(true)}
-            className="text-xs font-bold text-white bg-[#1a1a1a] hover:bg-[#222] border border-[#2a2a2a] px-3 py-1.5 rounded-lg transition-colors"
+            className="text-xs font-bold text-white bg-surface2 hover:bg-surface2 border border-stroke px-3 py-1.5 rounded-lg transition-colors"
           >
             Edit
           </button>
@@ -163,7 +163,7 @@ export default function ProfilePage() {
       <TrainingGoalCard goal={profile?.training_goal ?? null} raceName={profile?.primary_race_name ?? null} onChanged={reload} />
 
       {editing ? (
-        <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-5 mb-6">
+        <div className="rounded-[24px] border border-stroke bg-surface p-5 mb-6">
           {profile && !profile.is_complete && (
             <p className="text-xs text-[#fbbf24] mb-4">
               Complete your profile to unlock real coaching data instead of generic defaults.
@@ -181,18 +181,18 @@ export default function ProfilePage() {
               ["swim_pace_per_100m", `Swim pace (${swimPaceInputLabel(units)})`],
               ["run_threshold_pace", `Run threshold pace (${runPaceInputLabel(units)})`],
             ] as [keyof FormState, string][]).map(([key, label]) => (
-              <label key={key} className="text-xs text-[#737373]">
+              <label key={key} className="text-xs text-muted">
                 {label}
                 <input
                   type="number"
                   value={form[key] as string}
                   onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                  className="mt-1 w-full bg-[#151515] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#CE0E2D]/50"
+                  className="mt-1 w-full bg-surface2 border border-stroke rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-lime/50"
                 />
               </label>
             ))}
           </div>
-          <p className="text-[11px] text-[#525252] mb-3">
+          <p className="text-[11px] text-muted mb-3">
             Your coach plans around what you write here. Mentioning type 1 diabetes turns on glucose-aware fueling
             guidance{profile?.has_type1_diabetes ? " (currently on)" : ""}.
           </p>
@@ -203,13 +203,13 @@ export default function ProfilePage() {
               ["dietary_restrictions", "Dietary restrictions"],
             ] as const
           ).map(([key, label]) => (
-            <label key={key} className="block text-xs text-[#737373] mb-3">
+            <label key={key} className="block text-xs text-muted mb-3">
               {label}
               <textarea
                 value={form[key]}
                 maxLength={2000}
                 onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                className="mt-1 w-full min-h-[60px] resize-y bg-[#151515] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#CE0E2D]/50"
+                className="mt-1 w-full min-h-[60px] resize-y bg-surface2 border border-stroke rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-lime/50"
               />
             </label>
           ))}
@@ -217,14 +217,14 @@ export default function ProfilePage() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-4 py-2 font-black text-sm rounded-lg bg-[#CE0E2D] hover:bg-[#E31837] text-white transition-colors disabled:opacity-50"
+              className="px-4 py-2 font-semibold text-sm rounded-full bg-lime hover:bg-lime/90 text-ink transition-colors disabled:opacity-50"
             >
               {saving ? "Saving…" : "Save"}
             </button>
             {profile?.is_complete && (
               <button
                 onClick={() => setEditing(false)}
-                className="px-4 py-2 font-bold text-sm rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-[#737373]"
+                className="px-4 py-2 font-bold text-sm rounded-lg bg-surface2 border border-stroke text-muted"
               >
                 Cancel
               </button>
@@ -235,7 +235,7 @@ export default function ProfilePage() {
         <>
           {/* Performance Metrics */}
           <div className="mb-6">
-            <p className="text-[9px] font-bold text-[#525252] uppercase tracking-[0.15em] mb-3">Performance Metrics</p>
+            <p className="text-[9px] font-bold text-muted uppercase tracking-[0.15em] mb-3">Performance Metrics</p>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <StatCard label="FTP" value={profile?.ftp_watts ?? "—"} unit="W" icon={Zap} />
               <StatCard label="VO₂ Max" value={profile?.vo2_max ?? "—"} unit="ml/kg/min" icon={Activity} />
@@ -257,19 +257,19 @@ export default function ProfilePage() {
           {/* Performance profile from the real coaching pipeline */}
           {performance && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-4">
-                <h3 className="text-xs font-black text-white mb-3 uppercase tracking-wider flex items-center gap-2">
+              <div className="rounded-[24px] border border-stroke bg-surface p-4">
+                <h3 className="text-xs font-semibold text-white mb-3 uppercase tracking-wider flex items-center gap-2">
                   <Target className="w-4 h-4" /> Performance Levels
                 </h3>
-                <ul className="space-y-1.5 text-sm text-[#737373]">
+                <ul className="space-y-1.5 text-sm text-muted">
                   <li>Swim: {performance.swim_level}</li>
                   <li>Bike: {performance.bike_level}</li>
                   <li>Run: {performance.run_level}</li>
                 </ul>
               </div>
-              <div className="rounded-xl border border-[#d97706]/20 bg-[#d97706]/5 p-4">
-                <h3 className="text-xs font-black text-[#fbbf24] mb-3 uppercase tracking-wider">Primary Limiter</h3>
-                <p className="text-sm text-[#737373]">{performance.primary_limiter}</p>
+              <div className="rounded-[24px] border border-[#d97706]/20 bg-[#d97706]/5 p-4">
+                <h3 className="text-xs font-semibold text-[#fbbf24] mb-3 uppercase tracking-wider">Primary Limiter</h3>
+                <p className="text-sm text-muted">{performance.primary_limiter}</p>
               </div>
             </div>
           )}
@@ -277,19 +277,19 @@ export default function ProfilePage() {
           {/* Medical */}
           {profile?.has_type1_diabetes && (
             <div className="mb-6">
-              <p className="text-[9px] font-bold text-[#525252] uppercase tracking-[0.15em] mb-3 flex items-center gap-2">
+              <p className="text-[9px] font-bold text-muted uppercase tracking-[0.15em] mb-3 flex items-center gap-2">
                 <AlertCircle className="w-3.5 h-3.5 text-[#fbbf24]" /> Medical
               </p>
-              <div className="rounded-xl border border-[#CE0E2D]/25 bg-[#CE0E2D]/5 p-4">
+              <div className="rounded-[24px] border border-[#f87171]/25 bg-[#f87171]/5 p-4">
                 <div className="flex items-start justify-between mb-2">
-                  <h4 className="text-sm font-black text-[#f87171]">Type 1 Diabetes</h4>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#CE0E2D]/15 text-[#f87171] border border-[#CE0E2D]/20">
+                  <h4 className="text-sm font-semibold text-[#f87171]">Type 1 Diabetes</h4>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#f87171]/15 text-[#f87171] border border-[#f87171]/20">
                     Active
                   </span>
                 </div>
-                <div className="flex items-start gap-2 bg-[#151515] rounded-lg p-2.5">
-                  <Info className="w-3.5 h-3.5 text-[#525252] flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-[#737373] leading-relaxed">
+                <div className="flex items-start gap-2 bg-surface2 rounded-lg p-2.5">
+                  <Info className="w-3.5 h-3.5 text-muted flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-muted leading-relaxed">
                     These suggestions are general training support information only, not medical advice. Always
                     consult your endocrinologist or diabetes care team for insulin management and medical decisions.
                   </p>
@@ -300,46 +300,46 @@ export default function ProfilePage() {
 
           {/* Training Zones */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-4">
-              <p className="text-[9px] font-bold text-[#525252] uppercase tracking-[0.15em] mb-0.5">Heart Rate Zones</p>
+            <div className="rounded-[24px] border border-stroke bg-surface p-4">
+              <p className="text-[9px] font-bold text-muted uppercase tracking-[0.15em] mb-0.5">Heart Rate Zones</p>
               {profile?.max_hr ? (
                 <>
-                  <p className="text-[10px] text-[#404040] mb-3">Max HR: {profile.max_hr} bpm</p>
+                  <p className="text-[10px] text-muted/70 mb-3">Max HR: {profile.max_hr} bpm</p>
                   <div className="space-y-2">
                     {hrZonesFor(profile.max_hr).map((z) => (
-                      <div key={z.zone} className="flex items-center gap-3 p-2.5 rounded-lg bg-[#151515] border border-[#1e1e1e]">
+                      <div key={z.zone} className="flex items-center gap-3 p-2.5 rounded-lg bg-surface2 border border-stroke">
                         <div className={`w-1.5 h-6 rounded-full ${z.bar} flex-shrink-0`} />
-                        <span className="text-[10px] font-black text-[#525252] w-5">{z.zone}</span>
+                        <span className="text-[10px] font-semibold text-muted w-5">{z.zone}</span>
                         <div className="flex-1">
                           <div className="text-xs font-bold text-white">{z.name}</div>
-                          <div className="text-[10px] text-[#404040]">{z.pct}</div>
+                          <div className="text-[10px] text-muted/70">{z.pct}</div>
                         </div>
-                        <span className="text-[10px] text-[#737373] font-mono">{z.range}</span>
+                        <span className="text-[10px] text-muted font-mono">{z.range}</span>
                       </div>
                     ))}
                   </div>
                 </>
               ) : (
-                <p className="text-xs text-[#525252] mt-2">Add your max HR to see zones.</p>
+                <p className="text-xs text-muted mt-2">Add your max HR to see zones.</p>
               )}
             </div>
 
-            <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-4">
-              <p className="text-[9px] font-bold text-[#525252] uppercase tracking-[0.15em] mb-0.5">Cycling Power Zones</p>
+            <div className="rounded-[24px] border border-stroke bg-surface p-4">
+              <p className="text-[9px] font-bold text-muted uppercase tracking-[0.15em] mb-0.5">Cycling Power Zones</p>
               {profile?.ftp_watts ? (
                 <>
-                  <p className="text-[10px] text-[#404040] mb-3">FTP: {profile.ftp_watts}W</p>
+                  <p className="text-[10px] text-muted/70 mb-3">FTP: {profile.ftp_watts}W</p>
                   <div className="space-y-2">
                     {powerZonesFor(profile.ftp_watts).map((z, i) => (
-                      <div key={z.zone} className="flex items-center gap-3 p-2.5 rounded-lg bg-[#151515] border border-[#1e1e1e]">
+                      <div key={z.zone} className="flex items-center gap-3 p-2.5 rounded-lg bg-surface2 border border-stroke">
                         <div
                           className="w-1.5 h-6 rounded-full flex-shrink-0"
                           style={{ backgroundColor: `hsl(${200 + i * 25}, 80%, ${45 + i * 5}%)` }}
                         />
-                        <span className="text-[10px] font-black text-[#525252] w-5">{z.zone}</span>
+                        <span className="text-[10px] font-semibold text-muted w-5">{z.zone}</span>
                         <div className="flex-1">
                           <div className="text-xs font-bold text-white">{z.name}</div>
-                          <div className="text-[10px] text-[#404040]">{z.pct}</div>
+                          <div className="text-[10px] text-muted/70">{z.pct}</div>
                         </div>
                         <span className="text-[10px] text-[#fbbf24] font-mono">{z.range}</span>
                       </div>
@@ -347,7 +347,7 @@ export default function ProfilePage() {
                   </div>
                 </>
               ) : (
-                <p className="text-xs text-[#525252] mt-2">Add your FTP to see power zones.</p>
+                <p className="text-xs text-muted mt-2">Add your FTP to see power zones.</p>
               )}
             </div>
           </div>

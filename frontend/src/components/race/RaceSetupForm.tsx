@@ -17,8 +17,8 @@ import {
 
 const FT_PER_M = 3.28084;
 const inputCls =
-  "w-full text-sm bg-[#0d0d0d] border border-[#262626] rounded-lg px-3 py-2 text-white placeholder:text-[#404040] focus:outline-none focus:border-[#404040]";
-const labelCls = "text-[11px] font-bold text-[#737373] space-y-1";
+  "w-full text-sm bg-bg border border-stroke rounded-lg px-3 py-2 text-white placeholder:text-muted/60 focus:outline-none focus:border-muted";
+const labelCls = "text-[11px] font-bold text-muted space-y-1";
 
 type Form = {
   race_type: string;
@@ -169,13 +169,13 @@ export function RaceSetupForm({ race, goal, onSaved, onCancel, submitLabel = "Sa
         </select>
       </label>
 
-      <div className="rounded-lg border border-[#262626] bg-[#0d0d0d] p-3 space-y-2">
+      <div className="rounded-lg border border-stroke bg-bg p-3 space-y-2">
         <label className={`block ${labelCls}`}>
           <span className="inline-flex items-center gap-1"><Link2 className="w-3 h-3" /> Official race page (optional)</span>
           <input className={inputCls} type="url" inputMode="url" placeholder="https://… the race's own page"
             value={form.race_url} onChange={(e) => set({ race_url: e.target.value })} />
         </label>
-        <button type="button" className="text-[11px] font-bold text-[#737373] hover:text-white" onClick={() => setShowPaste((v) => !v)}>
+        <button type="button" className="text-[11px] font-bold text-muted hover:text-white" onClick={() => setShowPaste((v) => !v)}>
           {showPaste ? "▾" : "▸"} Paste details from the athlete guide instead
         </button>
         {showPaste && (
@@ -184,7 +184,7 @@ export function RaceSetupForm({ race, goal, onSaved, onCancel, submitLabel = "Sa
             onChange={(e) => setPasted(e.target.value)} />
         )}
         <button type="button" onClick={fillFromLink} disabled={importing || (!form.race_url.trim() && !pasted.trim())}
-          className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border border-[#262626] text-white hover:border-[#404040] disabled:opacity-40">
+          className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border border-stroke text-white hover:border-muted disabled:opacity-40">
           {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-[#60a5fa]" />}
           Fill in details
         </button>
@@ -216,7 +216,7 @@ export function RaceSetupForm({ race, goal, onSaved, onCancel, submitLabel = "Sa
           <div className="flex items-center gap-1">
             <input className={inputCls} type="number" min={0} max={48} placeholder="h" aria-label="Goal hours" value={form.goal_h}
               onChange={(e) => set({ goal_h: e.target.value })} />
-            <span className="text-[#525252]">:</span>
+            <span className="text-muted">:</span>
             <input className={inputCls} type="number" min={0} max={59} placeholder="mm" aria-label="Goal minutes" value={form.goal_m}
               onChange={(e) => set({ goal_m: e.target.value })} />
           </div>
@@ -250,9 +250,9 @@ export function RaceSetupForm({ race, goal, onSaved, onCancel, submitLabel = "Sa
 
       {error && <p className="text-xs text-[#f87171]">{error}</p>}
       <div className="flex justify-end gap-2">
-        {onCancel && <button className="text-xs font-bold px-4 py-2 rounded-lg text-[#737373] hover:text-white" onClick={onCancel}>Cancel</button>}
+        {onCancel && <button className="text-xs font-bold px-4 py-2 rounded-lg text-muted hover:text-white" onClick={onCancel}>Cancel</button>}
         <button onClick={save} disabled={!canSave}
-          className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-lg bg-[#CE0E2D] text-white hover:bg-[#b00c27] disabled:opacity-40">
+          className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-full bg-lime text-ink hover:bg-lime/90 disabled:opacity-40">
           <Check className="w-3.5 h-3.5" /> {submitLabel}
         </button>
       </div>

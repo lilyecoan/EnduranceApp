@@ -1,24 +1,26 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { Bike, ExternalLink, Footprints, Loader2, Pencil, RefreshCw, Utensils, Waves } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useAthleteProfile } from "@/hooks/useAthleteProfile";
 import { useCoachingPlan } from "@/hooks/useCoachingPlan";
-import { daysUntil, weeksUntil } from "@/lib/utils";
-import { CoachCard } from "@/components/dashboard/CoachCard";
+import { daysUntil } from "@/lib/utils";
+import { TopBar } from "@/components/layout/TopBar";
 import { RaceSetupForm } from "@/components/race/RaceSetupForm";
-import { NutritionPlanView } from "@/components/race/NutritionPlanView";
+import {
+  Conditions, Countdown, Fueling, PacingLocked, RaceActions, RaceHero, RaceTimeline, Sources,
+} from "@/components/race/RaceSections";
+import { StatTile } from "@/components/ui/StatTile";
+import { FigmaIcon } from "@/components/ui/FigmaIcon";
 import { useUnits } from "@/components/units/UnitsProvider";
 import { fetchRace, generateNutritionPlan, type Race } from "@/lib/raceApi";
 import { goalLabel } from "@/lib/raceTypes";
-import { formatClock, formatDistance, formatRunPace, formatShortDistance, formatSwimPace } from "@/lib/units";
-
-const card = "rounded-xl border border-[#1e1e1e] bg-[#111] p-5";
+import { formatRunPace, formatSwimPace } from "@/lib/units";
 
 export default function RacePage() {
   const { getToken, isSignedIn } = useAuth();
   const { profile } = useAthleteProfile();
-  const { plan, loading: planLoading } = useCoachingPlan();
+  const { plan: coaching } = useCoachingPlan();
   const { units } = useUnits();
   const [race, setRace] = useState<Race | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,139 +59,113 @@ export default function RacePage() {
     }
   }
 
-  function onSaved(saved: Race) {
-    setRace(saved);
-    setEditing(false);
-  }
-
   const days = race ? daysUntil(race.race_date) : null;
-  const weeks = race ? weeksUntil(race.race_date) : null;
-  const strategy = plan?.race_strategy;
   const noRaceGoal = profile?.training_goal === "gym" || profile?.training_goal === "general";
+  const strategy = coaching?.race_strategy;
+  const nutrition = race?.nutrition_plan;
+
+  const shell = (children: React.ReactNode) => (
+    <div className="flex flex-col gap-7 lg:gap-9 px-5 lg:px-10 pt-7 lg:pt-8 pb-8 lg:pb-14 max-w-[1440px]">
+      <TopBar label="Race Strategy" title="Your race, planned to the minute." />
+      <div className="lg:hidden flex flex-col gap-1.5">
+        <h1 className="text-[40px] leading-none font-semibold text-fg tracking-[-1.6px]">Race<br />Strategy</h1>
+        <p className="text-sm text-muted">
+          {days !== null && days >= 0 ? `${days} days until race day` : "Plan your race day"}
+        </p>
+      </div>
+      {children}
+    </div>
+  );
 
   if (loading) {
-    return <div className="p-6 text-sm text-[#525252]">{loadError ? "Couldn't load your race." : "Loading race…"}</div>;
+    return shell(<p className="text-sm text-muted">{loadError ? "Couldn't load your race." : "Loading race…"}</p>);
   }
 
   if (!race || editing) {
-    return (
-      <div className="p-6 max-w-2xl">
-        <p className="text-[10px] font-bold text-[#CE0E2D] uppercase tracking-[0.2em] mb-1">Race Day</p>
-        <h1 className="text-2xl font-black text-white tracking-tight mb-1">{race ? "Edit your race" : "Add your race"}</h1>
-        <p className="text-sm text-[#737373] mb-5">
-          {noRaceGoal && !race
-            ? `You're training for ${goalLabel(profile?.training_goal).toLowerCase()}, so there's no race to plan for. Add one here if you sign up for an event.`
-            : "Paste the race's official page and we'll fill in what we can. Then we'll build a race-day nutrition plan around its start time, weather, altitude and your health notes."}
-        </p>
-        <div className={card}>
-          <RaceSetupForm race={race} goal={noRaceGoal ? undefined : profile?.training_goal ?? undefined}
-            onSaved={onSaved} onCancel={race ? () => setEditing(false) : undefined} />
+    return shell(
+      <div className="max-w-2xl flex flex-col gap-4">
+        <div>
+          <h2 className="text-2xl font-semibold text-fg tracking-[-0.48px]">{race ? "Edit your race" : "Add your race"}</h2>
+          <p className="text-sm text-muted mt-1.5">
+            {noRaceGoal && !race
+              ? `You're training for ${goalLabel(profile?.training_goal).toLowerCase()}, so there's no race to plan for. Add one if you sign up for an event.`
+              : "Paste the race's official page and we'll fill in what we can, then build a race-day plan around its start time, weather, altitude and your health notes."}
+          </p>
         </div>
-      </div>
+        <div className="bg-surface border border-stroke rounded-[28px] p-5 lg:p-7">
+          <RaceSetupForm race={race} goal={noRaceGoal ? undefined : profile?.training_goal ?? undefined}
+            onSaved={(saved) => { setRace(saved); setEditing(false); }} onCancel={race ? () => setEditing(false) : undefined} />
+        </div>
+      </div>,
     );
   }
 
-  const nutrition = race.nutrition_plan;
-
-  return (
-    <div className="p-6 max-w-5xl">
-      {/* Header */}
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-[10px] font-bold text-[#CE0E2D] uppercase tracking-[0.2em] mb-1">Race Day · {goalLabel(race.race_type)}</p>
-          <h1 className="text-2xl font-black text-white tracking-tight">{race.name}</h1>
-          <p className="text-sm text-[#525252] mt-0.5">
-            {new Date(race.race_date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-            {race.start_time && ` · starts ${formatClock(race.start_time.slice(0, 5))}`}
-            {race.location && ` · ${race.location}`}
-          </p>
-          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px] text-[#737373]">
-            {race.swim_distance_m != null && <span className="inline-flex items-center gap-1"><Waves className="w-3 h-3" />{formatShortDistance(race.swim_distance_m, units)}</span>}
-            {race.bike_distance_km != null && <span className="inline-flex items-center gap-1"><Bike className="w-3 h-3" />{formatDistance(race.bike_distance_km * 1000, units)}</span>}
-            {race.run_distance_km != null && <span className="inline-flex items-center gap-1"><Footprints className="w-3 h-3" />{formatDistance(race.run_distance_km * 1000, units)}</span>}
-            {race.race_url && (
-              <a href={race.race_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[#60a5fa] hover:underline">
-                Race page <ExternalLink className="w-3 h-3" />
-              </a>
-            )}
-            <button onClick={() => setEditing(true)} className="inline-flex items-center gap-1 font-bold text-[#a3a3a3] hover:text-white">
-              <Pencil className="w-3 h-3" /> Edit race
-            </button>
-          </div>
-        </div>
-        {days !== null && weeks !== null && days >= 0 && (
-          <div className="text-right rounded-xl border border-[#CE0E2D]/20 bg-[#CE0E2D]/5 px-5 py-3 flex-shrink-0">
-            <div className="text-3xl font-black text-white tabular-nums">{days}</div>
-            <div className="text-[9px] text-[#CE0E2D] font-bold uppercase tracking-widest">days · {weeks} weeks</div>
+  return shell(
+    <>
+      <div className="flex flex-col lg:flex-row gap-7 lg:gap-5 w-full">
+        <RaceHero race={race} onEdit={() => setEditing(true)} />
+        {days !== null && days >= 0 && (
+          <div className="flex flex-col gap-5 lg:w-[340px] lg:shrink-0">
+            <Countdown days={days} />
+            <RaceActions race={race} onEdit={() => setEditing(true)} />
           </div>
         )}
       </div>
+      <button onClick={() => setEditing(true)} className="lg:hidden -mt-4 self-start text-[13px] font-semibold text-lime">
+        Edit race details →
+      </button>
 
-      {/* Race-day nutrition */}
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-black text-white inline-flex items-center gap-2"><Utensils className="w-4 h-4 text-[#fbbf24]" /> Race-day nutrition plan</h2>
-        {nutrition && (
-          <button onClick={buildPlan} disabled={building}
-            className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg border border-[#262626] text-[#a3a3a3] hover:text-white disabled:opacity-40">
-            {building ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />} Rebuild
-          </button>
-        )}
-      </div>
-      {buildError && <p className="text-xs text-[#f87171] mb-3">{buildError}</p>}
+      {buildError && <p className="text-sm text-[#f87171]">{buildError}</p>}
       {race.nutrition_plan_stale && (
-        <div className="rounded-lg border border-[#d97706]/30 bg-[#d97706]/10 px-4 py-2 mb-3 text-xs text-[#fbbf24]">
-          Your race details changed since this plan was made. Rebuild it to match.
-        </div>
-      )}
-      {nutrition ? (
-        <NutritionPlanView race={race} plan={nutrition} />
-      ) : (
-        <div className={`${card} text-center`}>
-          <p className="text-sm text-[#a3a3a3] mb-1">A fueling plan just for this race.</p>
-          <p className="text-xs text-[#525252] mb-4">
-            Timed to your start, adjusted for race-day weather, altitude and course, and checked against your health and dietary notes.
-          </p>
-          <button onClick={buildPlan} disabled={building}
-            className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-lg bg-[#CE0E2D] text-white hover:bg-[#b00c27] disabled:opacity-40">
-            {building ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Utensils className="w-3.5 h-3.5" />}
-            {building ? "Building… (checking weather)" : "Build my race-day plan"}
+        <div className="flex items-center justify-between gap-3 border border-lime/40 bg-lime/5 rounded-[18px] px-4 py-3">
+          <p className="text-[13px] text-fg">Your race details changed since this plan was made.</p>
+          <button onClick={buildPlan} disabled={building} className="bg-lime text-ink rounded-full px-4 py-2 text-[13px] font-semibold shrink-0">
+            Rebuild
           </button>
         </div>
       )}
 
-      {/* Pacing from the coaching agents (within 8 weeks of race day) */}
-      <h2 className="text-sm font-black text-white mt-8 mb-3">Pacing</h2>
-      {planLoading ? (
-        <p className="text-sm text-[#525252]">Loading race strategy…</p>
-      ) : !strategy ? (
-        <div className={`${card} text-sm text-[#525252]`}>
-          Pacing targets activate within 8 weeks of your race. Focus on base training until then.
-        </div>
-      ) : (
+      {nutrition ? (
         <>
-          <CoachCard
-            title="Race Strategy"
-            message={plan?.today_recommendation || "No new plan generated today."}
-            type="info"
-            metrics={[
-              ...(strategy.bike_watts_target ? [{ label: "Bike Target", value: `${strategy.bike_watts_target}W` }] : []),
-              ...(strategy.run_pace_target ? [{ label: "Run Target", value: formatRunPace(strategy.run_pace_target, units) }] : []),
-              ...(strategy.swim_pace_per_100m ? [{ label: "Swim Target", value: formatSwimPace(strategy.swim_pace_per_100m, units) }] : []),
-            ]}
-            agentSource="Race Strategy Agent"
-            className="mb-4"
-          />
-          {strategy.taper_notes && <div className={`${card} mb-4 text-sm text-[#737373]`}>{strategy.taper_notes}</div>}
-          {strategy.key_race_notes.length > 0 && (
-            <div className={card}>
-              <p className="text-[9px] font-bold text-[#525252] uppercase tracking-[0.15em] mb-3">Key Race Notes</p>
-              <ul className="space-y-1.5 text-sm text-[#737373] list-disc list-inside">
-                {strategy.key_race_notes.map((note, i) => <li key={i}>{note}</li>)}
-              </ul>
-            </div>
-          )}
+          <Conditions race={race} plan={nutrition} />
+          <Fueling plan={nutrition} onRebuild={buildPlan} building={building} />
+          <RaceTimeline plan={nutrition} />
         </>
+      ) : (
+        <div className="bg-surface border border-stroke rounded-[28px] p-6 lg:p-8 flex flex-col lg:flex-row gap-5 lg:items-center">
+          <span className="bg-lime rounded-full size-12 flex items-center justify-center shrink-0">
+            <FigmaIcon name="icon-sparkle-ink.svg" size={20} original />
+          </span>
+          <div className="flex-1">
+            <h2 className="text-xl font-semibold text-fg">Build your race-day plan</h2>
+            <p className="text-sm text-muted mt-1">
+              Fueling timed to your start, adjusted for race-day weather, altitude and course, and checked against your health and dietary notes.
+            </p>
+          </div>
+          <button onClick={buildPlan} disabled={building}
+            className="bg-lime text-ink rounded-full px-5 py-3 text-sm font-semibold flex items-center gap-2 justify-center disabled:opacity-60">
+            {building && <Loader2 className="size-4 animate-spin" />}
+            {building ? "Checking weather…" : "Build my plan"}
+          </button>
+        </div>
       )}
-    </div>
+
+      <div className="flex flex-col lg:flex-row gap-5 w-full items-stretch">
+        {strategy ? (
+          <div className="flex-1 min-w-0 flex flex-col gap-3.5">
+            <h2 className="text-xl lg:text-2xl font-semibold text-fg tracking-[-0.02em]">Pacing targets</h2>
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+              {strategy.swim_pace_per_100m && <StatTile label="Swim" value={formatSwimPace(strategy.swim_pace_per_100m, units).split("/")[0]} unit={`/${formatSwimPace(strategy.swim_pace_per_100m, units).split("/")[1]}`} />}
+              {strategy.bike_watts_target && <StatTile label="Bike" value={String(strategy.bike_watts_target)} unit="W" accent />}
+              {strategy.run_pace_target && <StatTile label="Run" value={formatRunPace(strategy.run_pace_target, units).split("/")[0]} unit={`/${formatRunPace(strategy.run_pace_target, units).split("/")[1]}`} />}
+            </div>
+            {strategy.taper_notes && <p className="text-[13px] text-muted">{strategy.taper_notes}</p>}
+          </div>
+        ) : (
+          days !== null && days >= 0 && <PacingLocked raceDate={race.race_date} days={days} />
+        )}
+        {nutrition && <Sources plan={nutrition} />}
+      </div>
+    </>,
   );
 }

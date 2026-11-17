@@ -31,13 +31,13 @@ export default function OverviewPage() {
   const firstName = user?.firstName || "there";
 
   return (
-    <div className="p-6 max-w-7xl">
+    <div className="px-5 py-7 lg:px-10 lg:py-8 max-w-7xl">
       {/* Page header */}
       <div className="flex items-start justify-between mb-4">
         <div>
-          <p className="text-[10px] font-bold text-[#CE0E2D] uppercase tracking-[0.2em] mb-1">IronMind AI · Dashboard</p>
-          <h1 className="text-2xl font-black text-white tracking-tight">Good morning, {firstName} 👋</h1>
-          <p className="text-sm text-[#525252] mt-0.5">
+          <p className="text-sm font-medium text-muted mb-1.5">IronMind AI · Dashboard</p>
+          <h1 className="text-[30px] font-semibold text-fg tracking-[-0.9px]">Good morning, {firstName} 👋</h1>
+          <p className="text-sm text-muted mt-0.5">
             {profile?.primary_race_name
               ? `${profile.primary_race_name}${profile.primary_race_date ? ` · ${profile.primary_race_date}` : ""}`
               : "Add your race on the Race tab"}
@@ -56,11 +56,11 @@ export default function OverviewPage() {
           <div
             className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
               source === "live"
-                ? "bg-[#CE0E2D]/10 text-[#CE0E2D] border border-[#CE0E2D]/20"
-                : "bg-[#1a1a1a] text-[#404040] border border-[#222]"
+                ? "bg-lime/10 text-lime border border-lime/20"
+                : "bg-surface2 text-muted/70 border border-stroke"
             }`}
           >
-            <div className={`w-1.5 h-1.5 rounded-full ${source === "live" ? "bg-[#CE0E2D] animate-pulse" : "bg-[#404040]"}`} />
+            <div className={`w-1.5 h-1.5 rounded-full ${source === "live" ? "bg-lime animate-pulse" : "bg-muted/50"}`} />
             {source === "live" ? "Your data" : "Demo Data"}
           </div>
         </div>
@@ -74,7 +74,7 @@ export default function OverviewPage() {
 
       {/* Coach cards — always from the real coaching pipeline, never a static message */}
       {planLoading ? (
-        <div className="mb-6 text-sm text-[#525252]">Running today&apos;s assessment…</div>
+        <div className="mb-6 text-sm text-muted">Running today&apos;s assessment…</div>
       ) : plan ? (
         <>
           <CoachCard
@@ -108,23 +108,23 @@ export default function OverviewPage() {
           />
         </>
       ) : (
-        <div className="mb-6 text-sm text-[#525252]">Unable to load today&apos;s assessment.</div>
+        <div className="mb-6 text-sm text-muted">Unable to load today&apos;s assessment.</div>
       )}
 
       {/* Recovery scores row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <div className="col-span-2 lg:col-span-1 rounded-xl border border-[#1e1e1e] bg-[#111] p-4">
-          <p className="text-[9px] font-bold text-[#525252] uppercase tracking-[0.15em] mb-4">Today&apos;s Scores</p>
+        <div className="col-span-2 lg:col-span-1 rounded-[24px] border border-stroke bg-surface p-4">
+          <p className="text-[9px] font-bold text-muted uppercase tracking-[0.15em] mb-4">Today&apos;s Scores</p>
           <div className="flex items-center justify-around">
             {recoveryScore !== null ? (
               <ScoreRing score={recoveryScore} label="Recovery" size={88} />
             ) : (
-              <div className="text-center text-[10px] text-[#404040] uppercase tracking-wider">No recovery data</div>
+              <div className="text-center text-[10px] text-muted/70 uppercase tracking-wider">No recovery data</div>
             )}
             {readinessScore !== null ? (
               <ScoreRing score={readinessScore} label="Readiness" size={88} />
             ) : (
-              <div className="text-center text-[10px] text-[#404040] uppercase tracking-wider">No readiness data</div>
+              <div className="text-center text-[10px] text-muted/70 uppercase tracking-wider">No readiness data</div>
             )}
           </div>
         </div>
@@ -150,23 +150,23 @@ export default function OverviewPage() {
 
       {/* Middle row: Load · Race */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6">
-        <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-4">
-          <p className="text-[9px] font-bold text-[#525252] uppercase tracking-[0.15em] mb-4">Training Load</p>
+        <div className="rounded-[24px] border border-stroke bg-surface p-4">
+          <p className="text-[9px] font-bold text-muted uppercase tracking-[0.15em] mb-4">Training Load</p>
           <div className="grid grid-cols-3 gap-2 mb-4">
             {[
               { label: "CTL", value: g.ctl, color: "text-[#60a5fa]", sub: "Fitness" },
               { label: "ATL", value: g.atl, color: "text-[#fb923c]", sub: "Fatigue" },
               { label: "TSB", value: g.tsb, color: (g.tsb ?? 0) >= -5 ? "text-[#4ade80]" : "text-[#fbbf24]", sub: "Form" },
             ].map((m) => (
-              <div key={m.label} className="text-center bg-[#151515] rounded-lg py-2.5">
-                <div className={`text-lg font-black tabular-nums ${m.color}`}>{m.value ?? "—"}</div>
-                <div className="text-[9px] text-[#525252] font-bold uppercase mt-0.5">{m.label}</div>
-                <div className="text-[8px] text-[#404040]">{m.sub}</div>
+              <div key={m.label} className="text-center bg-surface2 rounded-lg py-2.5">
+                <div className={`text-lg font-semibold tabular-nums ${m.color}`}>{m.value ?? "—"}</div>
+                <div className="text-[9px] text-muted font-bold uppercase mt-0.5">{m.label}</div>
+                <div className="text-[8px] text-muted/70">{m.sub}</div>
               </div>
             ))}
           </div>
           {plan?.training_load && (
-            <div className="text-[10px] text-center py-1.5 rounded-lg bg-[#151515] border border-[#1e1e1e] text-[#525252] font-bold uppercase tracking-wider">
+            <div className="text-[10px] text-center py-1.5 rounded-lg bg-surface2 border border-stroke text-muted font-bold uppercase tracking-wider">
               {plan.training_load.training_phase} Phase · {plan.training_load.load_status}
             </div>
           )}
@@ -175,7 +175,7 @@ export default function OverviewPage() {
         {profile?.primary_race_date && profile?.primary_race_name ? (
           <RaceCountdown raceDate={profile.primary_race_date} raceName={profile.primary_race_name} />
         ) : (
-          <div className="rounded-xl border border-[#1e1e1e] bg-[#111] p-4 flex items-center justify-center text-sm text-[#525252]">
+          <div className="rounded-[24px] border border-stroke bg-surface p-4 flex items-center justify-center text-sm text-muted">
             Set a race goal in your profile to see a countdown.
           </div>
         )}
