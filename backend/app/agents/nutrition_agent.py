@@ -67,13 +67,16 @@ def nutrition_agent(state: AgentState) -> AgentState:
             hydration_ml = 900
             sodium_mg = 1000
 
-        reasoning_parts = [
-            f"Body weight {weight_kg}kg → base metabolic needs.",
-        ]
+        reasoning_parts = ["Scaled to your body weight."]
         if is_training_day:
+            done = bool(scheduled and scheduled.get("actual"))
             reasoning_parts.append(
-                f"Training session: {today_sport} {today_duration_min}min at {today_intensity} intensity."
+                f"{'You trained' if done else 'Planned'}: {today_sport} {today_duration_min} min at {today_intensity} intensity."
             )
+        elif scheduled:
+            reasoning_parts.append("Today's session was short, so this is close to a rest-day target.")
+        else:
+            reasoning_parts.append("No workout logged or synced today yet, so this is a rest-day target.")
         if is_long_session:
             reasoning_parts.append("Session >90min → intra-workout carbohydrate fueling required.")
 
@@ -88,6 +91,11 @@ def nutrition_agent(state: AgentState) -> AgentState:
             hydration_ml_per_hour=hydration_ml,
             sodium_mg_per_hour=sodium_mg,
             reasoning=" ".join(reasoning_parts),
+            day_type="hard" if is_high_intensity and is_training_day else "long" if is_long_session
+            else "training" if is_training_day else "rest",
+            workout_source=("done" if scheduled.get("actual") else "planned") if scheduled else None,
+            workout_sport=today_sport if scheduled else None,
+            workout_minutes=round(today_duration_min) if scheduled else None,
         )
 
     except Exception as e:

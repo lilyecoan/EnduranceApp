@@ -1,9 +1,9 @@
 "use client";
-import { mockNutritionDay } from "@/lib/mockData";
 import { Droplets, Flame, Zap, Beef, GlassWater } from "lucide-react";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { CoachCard } from "@/components/dashboard/CoachCard";
-import { DemoBanner } from "@/components/dashboard/DemoBanner";
+import { useAthleteProfile } from "@/hooks/useAthleteProfile";
+import { dietFrom, splitMeals } from "@/lib/mealSplit";
 import { useCoachingPlan } from "@/hooks/useCoachingPlan";
 import { useUnits } from "@/components/units/UnitsProvider";
 import { formatFluidPerHour } from "@/lib/units";
@@ -24,8 +24,26 @@ const Tip = ({ active, payload }: { active?: boolean; payload?: { name: string; 
 
 export default function NutritionPage() {
   const { plan, loading } = useCoachingPlan();
+  const { profile } = useAthleteProfile();
   const { units } = useUnits();
   const n = plan?.nutrition;
+  const training = !!n && n.day_type !== undefined && n.day_type !== "rest";
+  const meals = n
+    ? splitMeals(n.carbs_g, n.protein_g, {
+        training,
+        weightKg: profile?.weight_kg ?? null,
+        preCarbs: n.pre_workout_carbs_g,
+        diet: dietFrom(profile?.dietary_restrictions),
+      })
+    : [];
+  const sportName: Record<string, string> = { running: "run", cycling: "ride", swimming: "swim", strength: "strength session" };
+  const basis = !n
+    ? ""
+    : n.workout_source === "done"
+      ? `Based on your ${n.workout_minutes} min ${sportName[n.workout_sport ?? ""] ?? "workout"} today`
+      : n.workout_source === "planned"
+        ? `Based on today's planned ${n.workout_minutes} min ${sportName[n.workout_sport ?? ""] ?? "session"}`
+        : "No workout synced or logged yet today: rest-day targets";
 
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
@@ -49,7 +67,7 @@ export default function NutritionPage() {
         <h1 className="text-[30px] font-semibold text-fg tracking-[-0.9px]">Nutrition Plan</h1>
         <p className="text-sm text-muted mt-0.5">
           {today}
-          {n && !n.has_scheduled_workout && " · No workout scheduled — rest-day estimate"}
+          {basis && ` · ${basis}`}
         </p>
       </div>
 
@@ -126,7 +144,7 @@ export default function NutritionPage() {
             {/* Workout Fueling */}
             <div className="rounded-[24px] border border-stroke bg-surface p-4">
               <p className="text-[9px] font-bold text-muted uppercase tracking-[0.15em] mb-4">Workout Fueling</p>
-              {n.has_scheduled_workout ? (
+              {training ? (
                 <div className="space-y-3">
                   {n.pre_workout_carbs_g != null && (
                     <div className="flex items-center justify-between">
@@ -146,38 +164,43 @@ export default function NutritionPage() {
                   )}
                 </div>
               ) : (
-                <p className="text-xs text-muted">No workout scheduled today.</p>
+                <p className="text-xs text-muted">Rest day: no workout fueling needed. Targets update automatically when a workout syncs or you log one.</p>
               )}
             </div>
           </div>
         </>
       )}
 
-      {/* Illustrative meal timeline — no per-meal generation endpoint exists yet */}
-      <DemoBanner className="mb-4" message="Example meal timeline below — not generated from your actual data." />
-      <div className="rounded-[24px] border border-stroke bg-surface p-5">
-        <p className="text-[9px] font-bold text-muted uppercase tracking-[0.15em] mb-5">Example Meal Timeline</p>
-        <div className="space-y-0">
-          {mockNutritionDay.fueling_timeline.map((meal, i) => (
-            <div key={i} className="flex gap-4 relative">
-              {i < mockNutritionDay.fueling_timeline.length - 1 && (
-                <div className="absolute left-[27px] top-8 w-px h-[calc(100%-8px)] bg-[#1e1e1e]" />
-              )}
-              <div className="w-14 text-[10px] text-muted/70 pt-1.5 flex-shrink-0 text-right">{meal.time}</div>
-              <div className="w-3 h-3 rounded-full bg-lime/30 border-2 border-lime/50 mt-2 flex-shrink-0 z-10" />
-              <div className="flex-1 pb-5">
-                <div className="rounded-lg border border-stroke bg-surface2 p-3">
-                  <div className="text-xs font-bold text-white mb-1">{meal.item}</div>
-                  <div className="flex gap-3 text-[10px]">
-                    <span className="text-[#60a5fa]">{meal.carbs_g}g carbs</span>
-                    <span className="text-[#4ade80]">{meal.protein_g}g protein</span>
+      {n && (
+        <div className="rounded-[24px] border border-stroke bg-surface p-5">
+          <div className="flex items-baseline justify-between gap-3 mb-5 flex-wrap">
+            <p className="text-[9px] font-bold text-muted uppercase tracking-[0.15em]">Spread across your day</p>
+            <p className="text-[10px] text-muted">
+              Suggested split of today&apos;s targets{profile?.dietary_restrictions ? " · ideas follow your dietary notes" : ""}
+            </p>
+          </div>
+          <div className="space-y-0">
+            {meals.map((meal, i) => (
+              <div key={meal.name} className="flex gap-4 relative">
+                {i < meals.length - 1 && <div className="absolute left-[5px] top-6 w-px h-[calc(100%-12px)] bg-stroke" />}
+                <div className="w-3 h-3 rounded-full bg-lime mt-1.5 flex-shrink-0 z-10" />
+                <div className="flex-1 pb-5 min-w-0">
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <span className="text-sm font-semibold text-fg">{meal.name}</span>
+                    <span className="text-[11px] text-muted">{meal.when}</span>
+                  </div>
+                  <p className="text-xs text-muted mt-0.5">{meal.ideas}</p>
+                  <div className="flex gap-2 mt-2 text-[11px] font-medium">
+                    <span className="bg-surface2 rounded-full px-2.5 py-1 text-fg">{meal.carbs_g} g carbs</span>
+                    {meal.protein_g > 0 && <span className="bg-surface2 rounded-full px-2.5 py-1 text-fg">{meal.protein_g} g protein</span>}
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          <p className="text-[10px] text-muted mt-2">General guidance, not medical or dietitian advice.{profile?.has_type1_diabetes ? " With T1D, match insulin to these carbs with your care team's plan." : ""}</p>
         </div>
-      </div>
+      )}
     </div>
   );
 }

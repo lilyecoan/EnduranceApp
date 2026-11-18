@@ -79,6 +79,12 @@ class NutritionOutput(BaseModel):
     hydration_ml_per_hour: int
     sodium_mg_per_hour: int
     reasoning: str
+    # "rest" | "training" | "hard" | "long"
+    day_type: str = "rest"
+    # "planned" (a scheduled session) or "done" (what was actually trained today)
+    workout_source: Optional[str] = None
+    workout_sport: Optional[str] = None
+    workout_minutes: Optional[int] = None
 
 
 class DiabetesOutput(BaseModel):

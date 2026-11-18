@@ -19,7 +19,8 @@ export default function OverviewPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const { data: g, source } = useGarminData(refreshKey);
   const { profile } = useAthleteProfile();
-  const { plan, loading: planLoading } = useCoachingPlan(refreshKey);
+  const { plan, loading: planLoading, refresh, refreshing } = useCoachingPlan(refreshKey);
+  const aiDown = !!plan?.key_messages.some((m) => m.startsWith("AI coaching narrative unavailable"));
 
   const hrvAbove =
     g.hrv_rmssd != null && g.hrv_baseline
@@ -92,10 +93,18 @@ export default function OverviewPage() {
             agentSource="Head Coach"
             className="mb-3"
           />
+          {aiDown && (
+            <div className="flex items-center justify-between gap-3 rounded-[18px] border border-stroke bg-surface px-4 py-3 mb-3">
+              <p className="text-[13px] text-muted">The AI coach is busy or over its daily limit, so today&apos;s message uses the rule-based checks only.</p>
+              <button onClick={refresh} disabled={refreshing} className="bg-lime text-ink rounded-full px-4 py-2 text-[13px] font-semibold shrink-0 disabled:opacity-60">
+                {refreshing ? "Trying…" : "Try again"}
+              </button>
+            </div>
+          )}
           {plan.key_messages.length > 0 && (
             <CoachCard
               title="Today's Notes"
-              message={plan.key_messages.join(" ")}
+              message={plan.key_messages.filter((m) => !m.startsWith("AI coaching narrative unavailable")).join(" ")}
               type="info"
               agentSource="Coaching Agents"
               className="mb-3"

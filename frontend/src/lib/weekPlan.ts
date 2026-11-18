@@ -3,18 +3,15 @@
  * logs what they actually did.
  *
  * Rule (kept deliberately simple and explainable):
- * - Only logged sessions count; an unlogged past session is "not logged",
- *   never assumed done or missed.
+ * - Only logged or synced sessions count; an unlogged past session is "not
+ *   logged", never assumed done or missed.
  * - Did more than planned so far → the rest of the week is trimmed to absorb
  *   it, by at most 30%.
  * - Did less → the rest of the week grows by at most 10%. Missed work isn't
  *   crammed back in.
  */
-import { mockWeeklyPlan } from "@/lib/mockData";
-import type { WorkoutLog } from "@/lib/trainingApi";
+import type { SyncedActivity, WeekPlan, WorkoutLog } from "@/lib/trainingApi";
 
-const M_PER_MI = 1609.344;
-const M_PER_YD = 0.9144;
 export const MAX_CUT = 0.3;
 export const MAX_ADD = 0.1;
 
@@ -41,36 +38,28 @@ export function weekStart(today: Date): Date {
   return d;
 }
 
-/** The example week template placed on this week's dates. */
-export function buildWeek(today: Date): { dates: string[]; sessions: Session[] } {
-  const monday = weekStart(today);
-  const dates: string[] = [];
-  const sessions: Session[] = [];
-  mockWeeklyPlan.forEach((day, i) => {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    const date = isoDate(d);
-    dates.push(date);
-    const w = day.workout;
-    if (w) {
-      const distance =
-        "distance_mi" in w && w.distance_mi ? w.distance_mi * M_PER_MI
-          : "distance_yards" in w && w.distance_yards ? w.distance_yards * M_PER_YD
-            : null;
-      sessions.push({
-        key: `${date}:main`, date, day: day.day, slot: "main", sport: w.sport, name: w.name,
-        intensity: w.intensity ?? null, duration_min: w.duration_min, distance_m: distance, load: w.tss,
-      });
-    }
-    const s = "strength" in day ? day.strength : undefined;
-    if (s) {
-      sessions.push({
-        key: `${date}:strength`, date, day: day.day, slot: "strength", sport: "Strength", name: s.name,
-        intensity: null, duration_min: s.duration_min, distance_m: null, load: s.tss,
-      });
-    }
+const DAY_LABEL = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+/** The 7 dates of the week starting on Monday `monday` (YYYY-MM-DD). */
+export function weekDates(monday: string): string[] {
+  const start = new Date(monday + "T12:00:00");
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    return isoDate(d);
   });
-  return { dates, sessions };
+}
+
+export const dayLabel = (iso: string) => DAY_LABEL[(new Date(iso + "T12:00:00").getDay() + 6) % 7];
+
+/** Generated plan sessions in the shape the week tracker uses. */
+export function sessionsFromPlan(plan: WeekPlan): Session[] {
+  return plan.sessions
+    .filter((s) => s.sport !== "Race")
+    .map((s) => ({
+      key: `${s.date}:${s.slot}`, date: s.date, day: dayLabel(s.date), slot: s.slot, sport: s.sport, name: s.name,
+      intensity: s.intensity, duration_min: s.duration_min, distance_m: s.distance_m, load: s.load,
+    }));
 }
 
 export type SessionState = {
@@ -132,7 +121,7 @@ export function adjustWeek(dates: string[], sessions: Session[], logs: WorkoutLo
     };
   });
 
-  const days: DayLoad[] = dates.map((date, i) => {
+  const days: DayLoad[] = dates.map((date) => {
     const mine = states.filter((st) => st.session.date === date);
     const dayExtras = extras.filter((e) => e.date === date);
     const planned = mine.reduce((sum, st) => sum + st.session.load, 0);
@@ -143,7 +132,7 @@ export function adjustWeek(dates: string[], sessions: Session[], logs: WorkoutLo
     const adjustedSum = upcoming.reduce((sum, st) => sum + (st.adjusted?.load ?? st.session.load), 0);
     return {
       date,
-      day: mockWeeklyPlan[i].day,
+      day: dayLabel(date),
       planned,
       done: hasDone ? Math.round(doneSum) : null,
       adjusted: upcoming.length > 0 ? Math.round(adjustedSum) : null,
@@ -175,4 +164,39 @@ export function adjustWeek(dates: string[], sessions: Session[], logs: WorkoutLo
   }
 
   return { states, extras, days, plannedTotal, doneTotal, delta: roundedDelta, factor, message, warnings };
+}
+
+const SPORT_OF: Record<string, string> = { swimming: "Swim", cycling: "Bike", running: "Run", strength: "Strength" };
+
+/**
+ * Synced workouts as week entries: each one fills the planned session on the
+ * same local day and sport (unless the athlete logged that session
+ * themselves); anything else counts as extra work.
+ */
+export function syncedAsLogs(activities: SyncedActivity[], sessions: Session[], manual: WorkoutLog[]): WorkoutLog[] {
+  const taken = new Set(manual.map((l) => `${l.date}:${l.slot}`));
+  return activities.map((a) => {
+    const date = isoDate(new Date(a.start_time));
+    const sport = SPORT_OF[a.sport] ?? "Other";
+    const match = sessions.find((s) => s.date === date && s.sport === sport && !taken.has(s.key));
+    if (match) taken.add(match.key);
+    return {
+      id: `synced:${a.id}`,
+      date,
+      slot: match ? match.slot : "extra",
+      sport,
+      planned_name: match?.name ?? null,
+      planned_duration_min: match?.duration_min ?? null,
+      planned_distance_m: match?.distance_m ?? null,
+      planned_load: match?.load ?? null,
+      status: "completed",
+      actual_duration_min: a.duration_min,
+      actual_distance_m: a.distance_m,
+      rpe: null,
+      avg_hr: a.avg_hr,
+      notes: null,
+      load: a.load,
+      synced: { name: a.name, source: a.source },
+    };
+  });
 }

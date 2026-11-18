@@ -7,6 +7,7 @@ import { useCoachingPlan } from "@/hooks/useCoachingPlan";
 import { daysUntil } from "@/lib/utils";
 import { TopBar } from "@/components/layout/TopBar";
 import { RaceSetupForm } from "@/components/race/RaceSetupForm";
+import { SlideButton } from "@/components/race/SlideButton";
 import {
   Conditions, Countdown, Fueling, PacingLocked, RaceActions, RaceHero, RaceTimeline, Sources,
 } from "@/components/race/RaceSections";
@@ -111,7 +112,8 @@ export default function RacePage() {
           </div>
         )}
       </div>
-      <button onClick={() => setEditing(true)} className="lg:hidden -mt-4 self-start text-[13px] font-semibold text-lime">
+      {nutrition && <SlideButton className="lg:hidden -mt-2" />}
+      <button onClick={() => setEditing(true)} className="lg:hidden -mt-3 self-start text-[13px] font-semibold text-lime">
         Edit race details →
       </button>
 

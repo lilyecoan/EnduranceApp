@@ -1,5 +1,5 @@
 """Workout logs: what the athlete actually did, in their own words."""
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Literal, Optional
 from uuid import UUID
 
@@ -11,8 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import get_current_user
 from app.db.base import get_db
+from app.models.activity import Activity
 from app.models.user import User
 from app.models.workout_log import WorkoutLog
+from app.services.sources import AI_EXCLUDED_SOURCES
+from app.services import weekly_plan
 from app.services.workout_load import estimate_load
 
 router = APIRouter(prefix="/training", tags=["training"])
@@ -105,3 +108,88 @@ async def delete_log(
         raise HTTPException(status_code=404, detail="Log not found")
     await db.commit()
 
+
+
+class ActivityOut(BaseModel):
+    id: UUID
+    source: str
+    sport: str
+    name: Optional[str] = None
+    start_time: datetime
+    duration_min: Optional[float] = None
+    distance_m: Optional[float] = None
+    avg_hr: Optional[int] = None
+    elevation_gain_m: Optional[float] = None
+    load: float
+    # The source's own training-stress score, when it has one.
+    load_from_source: bool
+    used_for_coaching: bool
+
+
+@router.get("/activities", response_model=list[ActivityOut])
+async def list_activities(
+    start: date = Query(...),
+    end: date = Query(...),
+    tz_offset_minutes: int = Query(default=0, ge=-14 * 60, le=14 * 60),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Synced or uploaded workouts whose start falls on the athlete's local
+    dates start..end (inclusive)."""
+    if end < start or (end - start) > timedelta(days=MAX_RANGE_DAYS):
+        raise HTTPException(status_code=400, detail=f"Range must be 0-{MAX_RANGE_DAYS} days")
+    offset = timedelta(minutes=tz_offset_minutes)
+    lo = datetime.combine(start, time.min, tzinfo=timezone.utc) + offset
+    hi = datetime.combine(end + timedelta(days=1), time.min, tzinfo=timezone.utc) + offset
+    rows = (await db.execute(
+        select(Activity)
+        .where(Activity.user_id == current_user.id, Activity.start_time >= lo, Activity.start_time < hi)
+        .order_by(Activity.start_time)
+    )).scalars().all()
+    out = []
+    for a in rows:
+        minutes = (a.duration_seconds or 0) / 60 or None
+        out.append(ActivityOut(
+            id=a.id,
+            source=a.source,
+            sport=a.sport_type.value if a.sport_type else "other",
+            name=a.name,
+            start_time=a.start_time,
+            duration_min=round(minutes, 1) if minutes else None,
+            distance_m=a.distance_meters,
+            avg_hr=a.avg_hr,
+            elevation_gain_m=a.elevation_gain,
+            load=round(a.tss) if a.tss else estimate_load(actual_duration_min=minutes),
+            load_from_source=bool(a.tss),
+            used_for_coaching=a.source not in AI_EXCLUDED_SOURCES,
+        ))
+    return out
+
+
+def _monday(d: date) -> date:
+    return d - timedelta(days=d.weekday())
+
+
+@router.get("/plan")
+async def get_plan(
+    week_start: date = Query(...),
+    tz_offset_minutes: int = Query(default=0, ge=-14 * 60, le=14 * 60),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """The athlete's plan for the week starting `week_start` (snapped to Monday);
+    generated from their data the first time it's asked for, then kept."""
+    return await weekly_plan.get_week(db, current_user, _monday(week_start), tz_offset_minutes)
+
+
+@router.post("/plan/regenerate")
+async def regenerate_plan(
+    week_start: date = Query(...),
+    tz_offset_minutes: int = Query(default=0, ge=-14 * 60, le=14 * 60),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Rebuild the week from the latest data (e.g. after changing goal, race or injuries)."""
+    monday = _monday(week_start)
+    await weekly_plan.generate_and_store(db, current_user, monday, tz_offset_minutes)
+    return await weekly_plan.get_week(db, current_user, monday, tz_offset_minutes)

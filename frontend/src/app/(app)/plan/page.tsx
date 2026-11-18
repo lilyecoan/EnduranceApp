@@ -1,103 +1,232 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
-import { mockWeeklyPlan } from "@/lib/mockData";
+import {
+  Bike, CheckCircle2, ChevronLeft, ChevronRight, Coffee, Dumbbell, Flag, Footprints, Loader2, NotebookPen, RefreshCw, Shuffle, Waves,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Bike, Footprints, Waves, Coffee, Dumbbell, CheckCircle2, NotebookPen } from "lucide-react";
 import { LoadChart } from "@/components/plan/LoadChart";
 import { WorkoutLogPanel } from "@/components/plan/WorkoutLogPanel";
-import { listLogs, type WorkoutLog } from "@/lib/trainingApi";
-import { adjustWeek, buildWeek, isoDate, type SessionState } from "@/lib/weekPlan";
-import { DemoBanner } from "@/components/dashboard/DemoBanner";
 import { useUnits } from "@/components/units/UnitsProvider";
 import {
-  formatDistance,
-  formatFluidPerHour,
-  formatShortDistance,
-  milesToMeters,
-  ozToMl,
-  yardsToMeters,
-} from "@/lib/units";
+  fetchWeekPlan, listActivities, listLogs, regenerateWeekPlan,
+  type PlanSession, type SyncedActivity, type WeekPlan, type WorkoutLog,
+} from "@/lib/trainingApi";
+import {
+  adjustWeek, dayLabel, isoDate, sessionsFromPlan, syncedAsLogs, weekDates, weekStart, type SessionState,
+} from "@/lib/weekPlan";
+import { formatDistance, formatShortDistance, renderUnitTokens } from "@/lib/units";
 
 const sportIcon: Record<string, React.ElementType> = {
-  Run: Footprints, Swim: Waves, Bike: Bike,
+  Run: Footprints, Swim: Waves, Bike: Bike, Strength: Dumbbell, Cross: Shuffle, Race: Flag,
 };
 
-const sportStyle: Record<string, { border: string; bg: string; dot: string; label: string }> = {
-  // Sport colors follow the race-day leg bar: swim blue, bike lime, run off-white.
-  Swim: { border: "border-swim/30", bg: "bg-swim/5", dot: "bg-swim", label: "text-swim" },
-  Bike: { border: "border-lime/30", bg: "bg-lime/5", dot: "bg-lime", label: "text-lime" },
-  Run:  { border: "border-fg/20", bg: "bg-fg/[0.03]", dot: "bg-fg", label: "text-fg" },
+// Sport colors follow the race-day leg bar: swim blue, bike lime, run off-white.
+const sportStyle: Record<string, { border: string; bg: string; label: string }> = {
+  Swim: { border: "border-swim/30", bg: "bg-swim/5", label: "text-swim" },
+  Bike: { border: "border-lime/30", bg: "bg-lime/5", label: "text-lime" },
+  Run: { border: "border-fg/20", bg: "bg-fg/[0.03]", label: "text-fg" },
+  Strength: { border: "border-[#a78bfa]/25", bg: "bg-[#a78bfa]/5", label: "text-[#a78bfa]" },
+  Cross: { border: "border-stroke", bg: "bg-surface", label: "text-muted" },
+  Race: { border: "border-lime", bg: "bg-lime/10", label: "text-lime" },
 };
 
-const intensityBadge: Record<string, string> = {
-  "Zone 1":   "bg-[#1e3a5f] text-[#93c5fd] border-[#2563eb]/30",
-  "Zone 2":   "bg-[#14532d] text-[#4ade80] border-[#16a34a]/30",
-  "Zone 3":   "bg-[#713f12] text-[#fbbf24] border-[#d97706]/30",
-  "Zone 3–4": "bg-[#7c2d12] text-[#fb923c] border-[#ea580c]/30",
-  "Zone 4":   "bg-[#7f1d1d] text-[#f87171] border-lime/30",
-  "Zone 2–3": "bg-[#134e4a] text-[#34d399] border-[#059669]/30",
+const SOURCE_NAME: Record<string, string> = {
+  intervals_icu: "Intervals.icu", health_auto_export: "Apple Health", file_upload: "upload", strava: "Strava",
 };
 
-function SessionStatus({ state, onLog }: { state: SessionState | undefined; onLog: () => void }) {
+function shortDate(iso: string) {
+  return new Date(iso + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function addDays(iso: string, n: number) {
+  const d = new Date(iso + "T12:00:00");
+  d.setDate(d.getDate() + n);
+  return isoDate(d);
+}
+
+function SessionStatus({ state, onLog, todayIso }: { state: SessionState | undefined; onLog: () => void; todayIso: string }) {
   const { units } = useUnits();
   if (!state) return null;
   const { log, adjusted, notLogged, session } = state;
-  const swim = session.sport === "Swim";
-  const dist = (m: number) => (swim ? formatShortDistance(m, units) : formatDistance(m, units));
+  const dist = (m: number) => (session.sport === "Swim" ? formatShortDistance(m, units) : formatDistance(m, units));
   return (
-    <div className="flex flex-wrap items-center gap-2 mt-2">
+    <div className="flex flex-wrap items-center gap-2 mt-3">
       {log ? (
-        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4ade80] bg-[#14532d]/40 px-2 py-0.5 rounded">
+        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#4ade80] bg-[#14532d]/40 px-2.5 py-1 rounded-full">
           <CheckCircle2 className="w-3 h-3" />
-          {log.status === "skipped" ? "Skipped" : `Done${log.actual_duration_min ? ` · ${Math.round(log.actual_duration_min)}m` : ""}${log.actual_distance_m ? ` · ${dist(log.actual_distance_m)}` : ""}${log.rpe ? ` · RPE ${log.rpe}` : ""} · load ${log.load}`}
+          {log.status === "skipped"
+            ? "Skipped"
+            : `${log.synced ? `Synced from ${SOURCE_NAME[log.synced.source] ?? log.synced.source}` : "Done"}${log.actual_duration_min ? ` · ${Math.round(log.actual_duration_min)}m` : ""}${log.actual_distance_m ? ` · ${dist(log.actual_distance_m)}` : ""}${log.rpe ? ` · RPE ${log.rpe}` : ""} · load ${Math.round(log.load)}`}
         </span>
       ) : adjusted ? (
-        <span className="text-[10px] font-bold text-white bg-surface2 border border-dashed border-[#e5484d]/60 px-2 py-0.5 rounded">
+        <span className="text-[11px] font-semibold text-fg bg-surface2 border border-dashed border-[#e5484d]/60 px-2.5 py-1 rounded-full">
           Adjusted: {adjusted.duration_min}m{adjusted.distance_m ? ` · ${dist(adjusted.distance_m)}` : ""} · load {adjusted.load}
         </span>
       ) : notLogged ? (
-        <span className="text-[10px] text-muted">Not logged</span>
+        <span className="text-[11px] text-muted">Not logged</span>
       ) : null}
-      {log?.notes && <span className="text-[10px] text-muted italic truncate max-w-[260px]">“{log.notes}”</span>}
-      {(log || notLogged || state.session.date <= isoDate(new Date())) && (
-        <button onClick={onLog} className="inline-flex items-center gap-1 text-[10px] font-bold text-[#60a5fa] hover:underline">
-          <NotebookPen className="w-3 h-3" /> {log ? "Edit log" : "Log it"}
+      {log?.notes && <span className="text-[11px] text-muted italic truncate max-w-[260px]">“{log.notes}”</span>}
+      {session.date <= todayIso && (
+        <button onClick={onLog} className="inline-flex items-center gap-1 text-[11px] font-semibold text-lime hover:underline">
+          <NotebookPen className="w-3 h-3" /> {log && !log.synced ? "Edit log" : log?.synced ? "Add notes" : "Log it"}
         </button>
       )}
     </div>
   );
 }
 
-export default function PlanPage() {
+function SessionCard({ s, state, onLog, todayIso }: { s: PlanSession; state?: SessionState; onLog: () => void; todayIso: string }) {
   const { units } = useUnits();
-  const { getToken, isSignedIn } = useAuth();
-  const [today] = useState(() => new Date());
-  const todayIso = isoDate(today);
-  const { dates, sessions } = useMemo(() => buildWeek(today), [today]);
-  const [logs, setLogs] = useState<WorkoutLog[]>([]);
-  const [logError, setLogError] = useState(false);
-  const [selectedKey, setSelectedKey] = useState(
-    () => [...sessions].reverse().find((s) => s.date <= todayIso)?.key ?? "extra",
+  const Icon = sportIcon[s.sport] ?? Footprints;
+  const st = sportStyle[s.sport] ?? sportStyle.Cross;
+  return (
+    <div className={cn("rounded-[24px] border p-4 lg:p-5", st.border, st.bg, s.slot === "strength" && "lg:ml-10")}>
+      <div className="flex items-start gap-3">
+        <span className={cn("size-9 rounded-full bg-surface2 flex items-center justify-center shrink-0", st.label)}>
+          <Icon className="w-4 h-4" />
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[15px] font-semibold text-fg">{s.name}</span>
+            {s.intensity && s.sport !== "Race" && (
+              <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-surface2 text-muted">{s.intensity}</span>
+            )}
+            {s.slot === "strength" && <span className="text-[10px] font-semibold text-muted">Second session</span>}
+          </div>
+          <p className="text-[13px] text-muted leading-relaxed mt-1">{renderUnitTokens(s.description, units)}</p>
+          {s.sport === "Race" ? (
+            <Link href="/race" className="inline-block mt-2 text-[12px] font-semibold text-lime">Open race-day plan →</Link>
+          ) : (
+            <SessionStatus state={state} onLog={onLog} todayIso={todayIso} />
+          )}
+        </div>
+        {s.sport !== "Race" && (
+          <div className="flex gap-4 shrink-0 text-right">
+            <div>
+              <div className="text-sm font-semibold text-fg">{s.duration_min}m</div>
+              <div className="text-[9px] text-muted font-semibold uppercase">Time</div>
+            </div>
+            {s.distance_m && (
+              <div className="hidden sm:block">
+                <div className="text-sm font-semibold text-fg">
+                  {s.sport === "Swim" ? formatShortDistance(s.distance_m, units) : formatDistance(s.distance_m, units)}
+                </div>
+                <div className="text-[9px] text-muted font-semibold uppercase">≈ Dist</div>
+              </div>
+            )}
+            <div>
+              <div className="text-sm font-semibold text-fg">{s.load}</div>
+              <div className="text-[9px] text-muted font-semibold uppercase">Load</div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
+}
+
+function SyncedList({ activities }: { activities: SyncedActivity[] }) {
+  const { units } = useUnits();
+  const kind: Record<string, string> = { swimming: "Swim", cycling: "Bike", running: "Run", strength: "Strength" };
+  return (
+    <div className="rounded-[24px] border border-stroke bg-surface p-4">
+      <p className="text-sm font-semibold text-fg mb-1">Synced this week</p>
+      {activities.length === 0 ? (
+        <p className="text-xs text-muted">
+          No workouts synced yet this week. Connect a source in <Link href="/settings" className="text-lime">Settings</Link>, or log sessions below.
+        </p>
+      ) : (
+        <ul className="divide-y divide-stroke">
+          {activities.map((a) => {
+            const sport = kind[a.sport] ?? "Cross";
+            const Icon = sportIcon[sport] ?? Shuffle;
+            return (
+              <li key={a.id} className="flex items-center gap-3 py-2.5">
+                <Icon className={cn("w-4 h-4 shrink-0", (sportStyle[sport] ?? sportStyle.Cross).label)} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-semibold text-fg truncate">{a.name || sport}</p>
+                  <p className="text-[11px] text-muted">
+                    {dayLabel(isoDate(new Date(a.start_time)))} · {a.duration_min ? `${Math.round(a.duration_min)}m` : "–"}
+                    {a.distance_m ? ` · ${sport === "Swim" ? formatShortDistance(a.distance_m, units) : formatDistance(a.distance_m, units)}` : ""}
+                    {a.avg_hr ? ` · ${a.avg_hr} bpm` : ""}
+                  </p>
+                </div>
+                <span className="text-[11px] font-semibold text-fg" title={a.load_from_source ? "Load from source" : "Estimated from duration"}>
+                  {Math.round(a.load)}{a.load_from_source ? "" : "*"}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {activities.some((a) => !a.load_from_source) && <p className="text-[10px] text-muted mt-1">* load estimated from duration</p>}
+    </div>
+  );
+}
+
+export default function PlanPage() {
+  const { getToken, isSignedIn } = useAuth();
+  const [todayIso] = useState(() => isoDate(new Date()));
+  const thisMonday = useMemo(() => isoDate(weekStart(new Date())), []);
+  const [monday, setMonday] = useState(thisMonday);
+  const dates = useMemo(() => weekDates(monday), [monday]);
+  const [plan, setPlan] = useState<WeekPlan | null>(null);
+  const [logs, setLogs] = useState<WorkoutLog[]>([]);
+  const [activities, setActivities] = useState<SyncedActivity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [rebuilding, setRebuilding] = useState(false);
+  const [selectedKey, setSelectedKey] = useState("extra");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = await getToken();
+      const [p, l, a] = await Promise.all([
+        fetchWeekPlan(token, monday),
+        listLogs(token, dates[0], dates[6]),
+        listActivities(token, dates[0], dates[6]),
+      ]);
+      setPlan(p);
+      setLogs(l);
+      setActivities(a);
+      const past = p.sessions.filter((s) => s.sport !== "Race" && s.date <= todayIso);
+      setSelectedKey(past.length ? `${past[past.length - 1].date}:${past[past.length - 1].slot}` : "extra");
+    } catch {
+      setError("Couldn't load your plan. Refresh to try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [getToken, monday, dates, todayIso]);
 
   useEffect(() => {
     if (!isSignedIn) return;
     let cancelled = false;
     (async () => {
-      try {
-        const result = await listLogs(await getToken(), dates[0], dates[6]);
-        if (!cancelled) setLogs(result);
-      } catch {
-        if (!cancelled) setLogError(true);
-      }
+      if (!cancelled) await load();
     })();
     return () => {
       cancelled = true;
     };
-  }, [isSignedIn, getToken, dates]);
+  }, [isSignedIn, load]);
 
-  const week = useMemo(() => adjustWeek(dates, sessions, logs, todayIso), [dates, sessions, logs, todayIso]);
+  async function rebuild() {
+    setRebuilding(true);
+    try {
+      setPlan(await regenerateWeekPlan(await getToken(), monday));
+    } catch {
+      setError("Couldn't rebuild the week. Try again.");
+    } finally {
+      setRebuilding(false);
+    }
+  }
+
+  const sessions = useMemo(() => (plan ? sessionsFromPlan(plan) : []), [plan]);
+  const allLogs = useMemo(() => [...logs, ...syncedAsLogs(activities, sessions, logs)], [logs, activities, sessions]);
+  const week = useMemo(() => adjustWeek(dates, sessions, allLogs, todayIso), [dates, sessions, allLogs, todayIso]);
   const stateFor = (key: string) => week.states.find((st) => st.session.key === key);
 
   function onLogChanged(log: WorkoutLog | null, removedId?: string) {
@@ -112,209 +241,118 @@ export default function PlanPage() {
     document.getElementById("workout-log")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  const weekTSS   = mockWeeklyPlan.reduce((s, d) => s + (d.workout?.tss ?? 0) + (d.strength?.tss ?? 0), 0);
-  const weekHours = mockWeeklyPlan.reduce((s, d) => s + (d.workout?.duration_min ?? 0) + (d.strength?.duration_min ?? 0), 0) / 60;
+  const canGoBack = monday > addDays(thisMonday, -28);
+  const canGoForward = monday < addDays(thisMonday, 14);
+  const weekTitle = monday === thisMonday ? "This week" : monday > thisMonday ? "Upcoming week" : "Past week";
 
   return (
     <div className="px-5 py-7 lg:px-10 lg:py-8 max-w-7xl">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
-          <p className="text-sm font-medium text-muted mb-1.5">Weekly Schedule</p>
-          <h1 className="text-[30px] font-semibold text-fg tracking-[-0.9px]">Training Plan</h1>
+          <p className="text-sm font-medium text-muted mb-1.5">Training Plan</p>
+          <h1 className="text-[30px] font-semibold text-fg tracking-[-0.9px]">
+            {plan ? `${plan.phase_label}${plan.recovery_week ? " · recovery week" : ""}` : "Your week"}
+          </h1>
           <p className="text-sm text-muted mt-0.5">
-            Example week · {new Date(dates[0] + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}–{new Date(dates[6] + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+            {weekTitle} · {shortDate(dates[0])}–{shortDate(dates[6])}
+            {plan?.weeks_to_race != null && ` · ${plan.weeks_to_race} weeks to race`}
           </p>
         </div>
-        <div className="flex gap-5">
-          <div className="text-right">
-            <div className="text-2xl font-semibold text-white">{weekTSS}</div>
-            <div className="text-[9px] text-muted font-bold uppercase tracking-widest">TSS</div>
-          </div>
-          <div className="text-right">
-            <div className="text-2xl font-semibold text-white">{weekHours.toFixed(1)}h</div>
-            <div className="text-[9px] text-muted font-bold uppercase tracking-widest">Volume</div>
+        <div className="flex items-center gap-4">
+          {plan && (
+            <div className="flex gap-5">
+              <div className="text-right">
+                <div className="text-2xl font-semibold text-fg">{plan.planned_load}</div>
+                <div className="text-[9px] text-muted font-semibold uppercase tracking-widest">Load</div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-semibold text-fg">{plan.planned_hours}h</div>
+                <div className="text-[9px] text-muted font-semibold uppercase tracking-widest">Volume</div>
+              </div>
+            </div>
+          )}
+          <div className="flex gap-1">
+            <button aria-label="Previous week" disabled={!canGoBack || loading} onClick={() => setMonday(addDays(monday, -7))}
+              className="size-10 rounded-full bg-surface border border-stroke flex items-center justify-center text-fg disabled:opacity-30">
+              <ChevronLeft className="size-4" />
+            </button>
+            <button aria-label="Next week" disabled={!canGoForward || loading} onClick={() => setMonday(addDays(monday, 7))}
+              className="size-10 rounded-full bg-surface border border-stroke flex items-center justify-center text-fg disabled:opacity-30">
+              <ChevronRight className="size-4" />
+            </button>
           </div>
         </div>
       </div>
 
-      <DemoBanner
-        className="mb-6"
-        message="Example schedule. Weekly plan generation isn't built yet, but your logged workouts are real and shift the rest of this week."
-      />
+      {error && <p className="text-sm text-[#f87171] mb-4">{error}</p>}
+      {plan?.stale && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border border-lime/40 bg-lime/5 rounded-[18px] px-4 py-3 mb-5">
+          <p className="text-[13px] text-fg">Your goal, race, zones or health notes changed since this week was built.</p>
+          <button onClick={rebuild} disabled={rebuilding} className="bg-lime text-ink rounded-full px-4 py-2 text-[13px] font-semibold">
+            Rebuild week
+          </button>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] items-start">
-      <div className="min-w-0">
-      {/* Phase banner */}
-      <div className="rounded-[24px] border border-lime/20 bg-lime/5 p-4 mb-6 flex items-center gap-4">
-        <div className="w-1 h-12 bg-lime rounded-full flex-shrink-0" />
-        <div>
-          <div className="text-sm font-semibold text-white mb-0.5">Base Phase — Swim-Heavy + Strength Foundation</div>
-          <p className="text-xs text-muted leading-relaxed">
-            3 swims · 2 bikes · 1 run · 2 strength doubles. Mon and Sun are double days — swim first, strength after a short rest.
-            Saturday long ride is the key endurance session.
-          </p>
-        </div>
-      </div>
-
-      {/* Calendar */}
-      <div className="space-y-2">
-        {mockWeeklyPlan.map((day) => {
-          if (day.rest || !day.workout) {
-            return (
-              <div key={day.day} className="rounded-[24px] border border-stroke bg-surface p-4 flex items-center gap-4">
-                <div className="w-14 text-center flex-shrink-0">
-                  <div className="text-sm font-semibold text-muted/70">{day.day}</div>
-                  <div className="text-[9px] text-muted/70">{new Date(dates[mockWeeklyPlan.indexOf(day)] + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>
+        <div className="min-w-0 flex flex-col gap-5">
+          {loading ? (
+            <p className="text-sm text-muted flex items-center gap-2"><Loader2 className="size-4 animate-spin" /> Building your week…</p>
+          ) : plan && (
+            <>
+              <div className="rounded-[24px] bg-surface2 p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm font-semibold text-fg">Why this week looks like this</p>
+                  <button onClick={rebuild} disabled={rebuilding}
+                    className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-muted hover:text-fg shrink-0">
+                    <RefreshCw className={cn("size-3.5", rebuilding && "animate-spin")} /> Rebuild
+                  </button>
                 </div>
-                <Coffee className="w-4 h-4 text-muted/70" />
-                <div>
-                  <div className="text-sm font-bold text-muted/70">Rest Day</div>
-                  <div className="text-[11px] text-muted/70">Walk, mobility, or full rest. Recovery is training.</div>
-                </div>
-              </div>
-            );
-          }
-
-          const w   = day.workout;
-          const str = "strength" in day ? day.strength : undefined;
-          const Icon = sportIcon[w.sport] ?? Footprints;
-          const ss   = sportStyle[w.sport] ?? sportStyle.Run;
-          const ib   = intensityBadge[w.intensity ?? "Zone 2"] ?? "";
-
-          return (
-            <div key={day.day} className="space-y-1.5">
-              {/* Primary workout */}
-              <div className={cn("rounded-[24px] border p-4 transition-all", ss.border, ss.bg)}>
-                <div className="flex items-start gap-4">
-                  {/* Day */}
-                  <div className="w-14 flex-shrink-0 text-center">
-                    <div className="text-sm font-semibold text-white">{day.day}</div>
-                    <div className="text-[9px] text-muted">{new Date(dates[mockWeeklyPlan.indexOf(day)] + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>
-                    {str && (
-                      <div className="text-[8px] font-semibold text-lime uppercase tracking-wider mt-1">AM</div>
-                    )}
-                  </div>
-
-                  {/* Sport dot + icon */}
-                  <div className="flex items-center gap-2 flex-shrink-0 mt-1">
-                    <div className={cn("w-2 h-2 rounded-full", ss.dot)} />
-                    <Icon className={cn("w-4 h-4", ss.label)} />
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="text-sm font-bold text-white">{w.name}</span>
-                      <span className={cn("text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border", ib)}>
-                        {w.intensity}
-                      </span>
-                      <span className="text-[9px] text-muted/70 font-bold bg-surface2 px-2 py-0.5 rounded">TSS {w.tss}</span>
-                    </div>
-                    <p className="text-[12px] text-muted leading-relaxed">{w.notes}</p>
-                    <SessionStatus state={stateFor(`${dates[mockWeeklyPlan.indexOf(day)]}:main`)} onLog={() => openLog(`${dates[mockWeeklyPlan.indexOf(day)]}:main`)} />
-
-                    {"fueling" in w && w.fueling && (
-                      <div className="flex gap-4 text-[9px] text-muted bg-surface2 rounded-lg px-3 py-2 mt-2 font-medium">
-                        <span>🍬 {w.fueling.carbs_per_hour}g/hr GF carbs</span>
-                        <span>💧 {formatFluidPerHour(ozToMl(w.fueling.water_oz_per_hour), units)}</span>
-                        <span>🧂 {w.fueling.sodium_mg_per_hour}mg Na/hr</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Stats */}
-                  <div className="flex gap-4 flex-shrink-0 text-right">
-                    <div>
-                      <div className="text-sm font-semibold text-white">{w.duration_min}m</div>
-                      <div className="text-[9px] text-muted/70 font-bold uppercase">Time</div>
-                    </div>
-                    {"distance_yards" in w && w.distance_yards && (
-                      <div>
-                        <div className="text-sm font-semibold text-white">{formatShortDistance(yardsToMeters(w.distance_yards), units)}</div>
-                        <div className="text-[9px] text-muted/70 font-bold uppercase">Dist</div>
-                      </div>
-                    )}
-                    {"distance_mi" in w && w.distance_mi && (
-                      <div>
-                        <div className="text-sm font-semibold text-white">{formatDistance(milesToMeters(w.distance_mi), units)}</div>
-                        <div className="text-[9px] text-muted/70 font-bold uppercase">Dist</div>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <ul className="mt-2 space-y-1.5">
+                  {[...plan.reasons, ...plan.notes].map((r, i) => (
+                    <li key={i} className="flex gap-2 text-[13px] text-muted"><span className="text-lime">•</span>{r}</li>
+                  ))}
+                </ul>
+                <p className="text-[11px] text-muted/70 mt-3">
+                  Built from your race date, recent workouts, recovery data and health notes. Not medical advice.
+                </p>
               </div>
 
-              {/* Strength session (double day) */}
-              {str && (
-                <div className="rounded-[24px] border border-[#7c3aed]/20 bg-[#7c3aed]/5 p-4 ml-4">
-                  <div className="flex items-start gap-4">
-                    {/* PM label */}
-                    <div className="w-10 flex-shrink-0 text-center pt-0.5">
-                      <div className="text-[8px] font-semibold text-[#a78bfa] uppercase tracking-wider">PM</div>
-                    </div>
-
-                    {/* Icon */}
-                    <div className="flex items-center gap-2 flex-shrink-0 mt-1">
-                      <div className="w-2 h-2 rounded-full bg-[#a78bfa]" />
-                      <Dumbbell className="w-4 h-4 text-[#a78bfa]" />
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className="text-sm font-bold text-white">{str.name}</span>
-                        <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border bg-[#4a1d96] text-[#c4b5fd] border-[#7c3aed]/30">
-                          {str.focus === "lower" ? "Lower Body" : "Full Body"}
-                        </span>
-                        <span className="text-[9px] text-muted/70 font-bold bg-surface2 px-2 py-0.5 rounded">TSS {str.tss}</span>
+              {dates.map((date) => {
+                const daySessions = plan.sessions.filter((s) => s.date === date);
+                return (
+                  <section key={date} className="flex flex-col gap-2">
+                    <p className={cn("text-[12px] font-semibold uppercase tracking-wider", date === todayIso ? "text-lime" : "text-muted")}>
+                      {dayLabel(date)} · {shortDate(date)}{date === todayIso ? " · Today" : ""}
+                    </p>
+                    {daySessions.length === 0 ? (
+                      <div className="rounded-[24px] border border-stroke bg-surface p-4 flex items-center gap-3">
+                        <Coffee className="w-4 h-4 text-muted" />
+                        <span className="text-[13px] text-muted">Rest day. Walk, mobility, or full rest; recovery is training.</span>
                       </div>
-                      <p className="text-[12px] text-muted leading-relaxed">{str.notes}</p>
-                      <SessionStatus state={stateFor(`${dates[mockWeeklyPlan.indexOf(day)]}:strength`)} onLog={() => openLog(`${dates[mockWeeklyPlan.indexOf(day)]}:strength`)} />
-                    </div>
-
-                    {/* Duration */}
-                    <div className="flex-shrink-0 text-right">
-                      <div className="text-sm font-semibold text-white">{str.duration_min}m</div>
-                      <div className="text-[9px] text-muted/70 font-bold uppercase">Time</div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Week summary */}
-      <div className="mt-5 grid grid-cols-4 gap-3">
-        {[
-          { label: "🏊 Swim",     time: "2h 10m", vol: "4,100yd · 3×",  color: "text-[#60a5fa]" },
-          { label: "🚴 Bike",     time: "2h 30m", vol: "39.8mi · 2×",   color: "text-[#fbbf24]" },
-          { label: "🏃 Run",      time: "40m",    vol: "3.4mi · 1×",    color: "text-[#f87171]" },
-          { label: "💪 Strength", time: "1h 10m", vol: "2 doubles",      color: "text-[#a78bfa]" },
-        ].map((s) => (
-          <div key={s.label} className="rounded-[24px] border border-stroke bg-surface p-3 text-center">
-            <div className={cn("text-xs font-bold", s.color)}>{s.label}</div>
-            <div className="text-lg font-semibold text-white mt-1">{s.time}</div>
-            <div className="text-[9px] text-muted">{s.vol}</div>
-          </div>
-        ))}
-      </div>
-      </div>
-
-      <aside className="space-y-4 lg:sticky lg:top-6">
-        <LoadChart week={week} todayIso={todayIso} />
-        <div id="workout-log" className="scroll-mt-6">
-          {isSignedIn ? (
-            <WorkoutLogPanel sessions={sessions} logs={logs} selectedKey={selectedKey} onSelect={setSelectedKey}
-              onChanged={onLogChanged} todayIso={todayIso} />
-          ) : (
-            <p className="text-xs text-muted">Sign in to log workouts.</p>
+                    ) : (
+                      daySessions.map((s) => (
+                        <SessionCard key={s.id} s={s} state={stateFor(`${s.date}:${s.slot}`)} todayIso={todayIso}
+                          onLog={() => openLog(`${s.date}:${s.slot}`)} />
+                      ))
+                    )}
+                  </section>
+                );
+              })}
+            </>
           )}
-          {logError && <p className="text-[11px] text-[#f87171] mt-2">Couldn&apos;t load your logs. Refresh to try again.</p>}
         </div>
-      </aside>
+
+        <aside className="space-y-4 lg:sticky lg:top-6">
+          <LoadChart week={week} todayIso={todayIso} />
+          <SyncedList activities={activities} />
+          <div id="workout-log" className="scroll-mt-6">
+            {isSignedIn && plan && (
+              <WorkoutLogPanel sessions={sessions} logs={logs} selectedKey={selectedKey} onSelect={setSelectedKey}
+                onChanged={onLogChanged} todayIso={todayIso} />
+            )}
+          </div>
+        </aside>
       </div>
     </div>
   );

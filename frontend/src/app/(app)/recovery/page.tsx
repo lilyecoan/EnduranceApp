@@ -1,34 +1,16 @@
 "use client";
-import { mockRecoveryHistory, mockCTLHistory } from "@/lib/mockData";
 import { useGarminData } from "@/hooks/useGarminData";
 import { useCoachingPlan } from "@/hooks/useCoachingPlan";
 import { ScoreRing } from "@/components/dashboard/ScoreRing";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { CoachCard } from "@/components/dashboard/CoachCard";
-import { DemoBanner } from "@/components/dashboard/DemoBanner";
+import { HistoryCharts } from "@/components/recovery/HistoryCharts";
 import { Moon, Brain, Activity, Clock } from "lucide-react";
 import { formatDuration } from "@/lib/utils";
-import {
-  LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, BarChart, Bar, Legend,
-} from "recharts";
-
-const Tip = ({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) => {
-  if (active && payload?.length) {
-    return (
-      <div className="bg-surface border border-stroke rounded-lg p-3 text-xs shadow-2xl">
-        <p className="text-muted mb-1">{label}</p>
-        {payload.map((p) => (
-          <p key={p.name} className="font-bold" style={{ color: p.color }}>{p.name}: {p.value}</p>
-        ))}
-      </div>
-    );
-  }
-  return null;
-};
 
 export default function RecoveryPage() {
   const { data: g, source } = useGarminData();
+  const dataSource = (g as { data_source?: string }).data_source;
   const { plan, loading } = useCoachingPlan();
   const recovery = plan?.recovery;
   const isLive = source === "live";
@@ -41,7 +23,7 @@ export default function RecoveryPage() {
         <p className="text-sm font-medium text-muted mb-1.5">Biometric Analysis</p>
         <h1 className="text-[30px] font-semibold text-fg tracking-[-0.9px]">Recovery Analytics</h1>
         <div className="flex items-center gap-2 mt-0.5">
-          <p className="text-sm text-muted">Garmin Connect</p>
+          <p className="text-sm text-muted">{isLive ? `From ${({ intervals_icu: "Intervals.icu", health_auto_export: "Apple Health", file_upload: "your uploads", manual: "your check-ins" } as Record<string, string>)[dataSource ?? ""] ?? "your data"}` : "Demo data"}</p>
           <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${isLive ? "bg-lime/10 text-lime border border-lime/20" : "bg-surface2 text-muted/70 border border-stroke"}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${isLive ? "bg-lime animate-pulse" : "bg-muted/50"}`} />
             {isLive ? "Live" : "Demo"}
@@ -92,86 +74,8 @@ export default function RecoveryPage() {
         <StatCard label="Recovery Time" value={g.recovery_time_hours ?? "—"} unit="hrs" subtext="Suggested by Garmin" icon={Clock} />
       </div>
 
-      <DemoBanner className="mb-4" message="Historical trend charts below use illustrative example data — history tracking isn't built yet." />
-
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* HRV 14-day trend */}
-        <div className="rounded-[24px] border border-stroke bg-surface p-4">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-[9px] font-bold text-muted uppercase tracking-[0.15em]">HRV Trend — Example</p>
-          </div>
-          <div className="h-[200px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={mockRecoveryHistory}>
-                <defs>
-                  <linearGradient id="hrvAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#CE0E2D" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#CE0E2D" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#525252" }} axisLine={false} tickLine={false} />
-                <YAxis domain={[40, 90]} tick={{ fontSize: 10, fill: "#525252" }} axisLine={false} tickLine={false} />
-                <Tooltip content={<Tip />} />
-                <Area type="monotone" dataKey="hrv" stroke="#CE0E2D" fill="url(#hrvAreaGrad)" strokeWidth={2.5} name="HRV" dot={false} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Sleep Quality 14-day */}
-        <div className="rounded-[24px] border border-stroke bg-surface p-4">
-          <p className="text-[9px] font-bold text-muted uppercase tracking-[0.15em] mb-4">Sleep Quality — Example</p>
-          <div className="h-[200px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={mockRecoveryHistory}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#525252" }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "#525252" }} axisLine={false} tickLine={false} />
-                <Tooltip content={<Tip />} />
-                <Bar dataKey="sleep" fill="#7c3aed" radius={[3, 3, 0, 0]} name="Sleep Score" fillOpacity={0.8} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Readiness + Body Battery */}
-        <div className="rounded-[24px] border border-stroke bg-surface p-4">
-          <p className="text-[9px] font-bold text-muted uppercase tracking-[0.15em] mb-4">Training Readiness — Example</p>
-          <div className="h-[200px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={mockRecoveryHistory}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#525252" }} axisLine={false} tickLine={false} />
-                <YAxis domain={[30, 100]} tick={{ fontSize: 10, fill: "#525252" }} axisLine={false} tickLine={false} />
-                <Tooltip content={<Tip />} />
-                <Legend formatter={(v) => <span style={{ fontSize: 10, color: "#525252" }}>{v}</span>} />
-                <Line type="monotone" dataKey="readiness" stroke="#4ade80" strokeWidth={2} dot={false} name="Readiness" />
-                <Line type="monotone" dataKey="bodyBattery" stroke="#fbbf24" strokeWidth={2} dot={false} name="Body Battery" strokeDasharray="4 4" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* CTL/ATL */}
-        <div className="rounded-[24px] border border-stroke bg-surface p-4">
-          <p className="text-[9px] font-bold text-muted uppercase tracking-[0.15em] mb-4">Training Load History — Example</p>
-          <div className="h-[200px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={mockCTLHistory}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
-                <XAxis dataKey="week" tick={{ fontSize: 10, fill: "#525252" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: "#525252" }} axisLine={false} tickLine={false} />
-                <Tooltip content={<Tip />} />
-                <Legend formatter={(v) => <span style={{ fontSize: 10, color: "#525252" }}>{v}</span>} />
-                <Line type="monotone" dataKey="ctl" stroke="#60a5fa" strokeWidth={2} dot={false} name="CTL (Fitness)" />
-                <Line type="monotone" dataKey="atl" stroke="#fb923c" strokeWidth={2} dot={false} name="ATL (Fatigue)" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
+      <p className="text-[9px] font-bold text-muted uppercase tracking-[0.15em] mb-3">Last 30 days</p>
+      <HistoryCharts />
     </div>
   );
 }

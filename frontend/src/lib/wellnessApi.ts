@@ -26,3 +26,21 @@ async function call<T>(token: string | null, path: string, init: RequestInit = {
 export const listCheckIns = (token: string | null, days = 14) => call<CheckIn[]>(token, `/checkins?days=${days}`);
 export const saveCheckIn = (token: string | null, checkIn: CheckIn) =>
   call<CheckIn>(token, "/checkins", { method: "PUT", body: JSON.stringify(checkIn) });
+
+export type HistoryDay = {
+  date: string;
+  resting_hr: number | null;
+  hrv_rmssd: number | null;
+  hrv_sdnn: number | null;
+  sleep_hours: number | null;
+  steps: number | null;
+  ctl: number | null;
+  atl: number | null;
+  tsb: number | null;
+  sleep_quality: number | null;
+  energy: number | null;
+  soreness: number | null;
+};
+
+export const fetchWellnessHistory = (token: string | null, days = 30) =>
+  call<HistoryDay[]>(token, `/history?days=${days}`);

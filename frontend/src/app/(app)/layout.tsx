@@ -8,7 +8,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-full w-full bg-bg">
       <OnboardingGate />
       <Sidebar />
-      <main className="flex-1 min-w-0 lg:ml-[272px] pb-[180px] lg:pb-0">
+      <main className="flex-1 min-w-0 lg:ml-[272px] pb-[120px] lg:pb-0">
         <MobileHeader />
         {children}
       </main>

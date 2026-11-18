@@ -25,6 +25,10 @@ export type NutritionOutput = {
   hydration_ml_per_hour: number;
   sodium_mg_per_hour: number;
   reasoning: string;
+  day_type?: "rest" | "training" | "hard" | "long";
+  workout_source?: "planned" | "done" | null;
+  workout_sport?: string | null;
+  workout_minutes?: number | null;
 };
 
 export type TrainingLoadOutput = {
@@ -83,6 +87,8 @@ export type CoachingRunResult = {
   plan: CoachingPlan | null;
   errors: string[];
   garminSource: "live" | "demo" | "unknown";
+  /** True when the server reused today's plan because nothing changed. */
+  cached?: boolean;
 };
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000";
@@ -95,7 +101,10 @@ const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000";
  * "insufficient data" / "AI coaching narrative unavailable" states),
  * never a static string.
  */
-export async function runCoachingPipeline(token: string | null): Promise<CoachingRunResult> {
+export async function runCoachingPipeline(
+  token: string | null,
+  { force = false }: { force?: boolean } = {},
+): Promise<CoachingRunResult> {
   if (!token) {
     return { plan: null, errors: ["Not signed in"], garminSource: "unknown" };
   }
@@ -106,7 +115,7 @@ export async function runCoachingPipeline(token: string | null): Promise<Coachin
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({}),
+      body: JSON.stringify({ tz_offset_minutes: new Date().getTimezoneOffset(), force }),
       cache: "no-store",
     });
     if (!res.ok) throw new Error(`Coaching API ${res.status}`);
@@ -115,6 +124,7 @@ export async function runCoachingPipeline(token: string | null): Promise<Coachin
       plan: raw.plan ?? null,
       errors: raw.errors ?? [],
       garminSource: raw.garmin_source ?? "unknown",
+      cached: raw.cached ?? false,
     };
   } catch (err) {
     return {

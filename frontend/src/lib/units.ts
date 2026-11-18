@@ -78,14 +78,17 @@ export const metersToDisplayShort = (m: number, u: Units) => Math.round(u === "i
 export const displayShortToMeters = (v: number, u: Units) => (u === "imperial" ? v * M_PER_YD : v);
 
 /**
- * Server text can carry unit tokens — {temp:C}, {ml:ML}, {m:METERS} — so
+ * Server text can carry unit tokens ({temp:C}, {ml:ML}, {m:METERS},
+ * {pace_run:SEC_PER_KM}, {pace_swim:SEC_PER_100M}) so
  * sentences built on the backend still show in the athlete's units.
  */
 export function renderUnitTokens(text: string, u: Units): string {
-  return text.replace(/\{(temp|ml|m):(-?[\d.]+)\}/g, (_, kind: string, raw: string) => {
+  return text.replace(/\{(temp|ml|m|pace_run|pace_swim):(-?[\d.]+)\}/g, (_, kind: string, raw: string) => {
     const n = Number(raw);
     if (kind === "temp") return formatTemp(n, u);
     if (kind === "ml") return formatFluid(n, u);
+    if (kind === "pace_run") return formatRunPace(n, u);
+    if (kind === "pace_swim") return formatSwimPace(n, u);
     return formatElevation(n, u);
   });
 }

@@ -13,6 +13,7 @@ from app.db.base import get_db
 from app.models.recovery import RecoveryMetric
 from app.models.user import User
 from app.services import sync
+from app.services.sources import AI_EXCLUDED_SOURCES
 
 router = APIRouter(prefix="/wellness", tags=["wellness"])
 
@@ -75,3 +76,54 @@ async def save_checkin(
     await db.commit()
     return payload
 
+
+
+class HistoryDay(BaseModel):
+    date: date
+    resting_hr: Optional[int] = None
+    hrv_rmssd: Optional[float] = None
+    hrv_sdnn: Optional[float] = None
+    sleep_hours: Optional[float] = None
+    steps: Optional[int] = None
+    ctl: Optional[float] = None
+    atl: Optional[float] = None
+    tsb: Optional[float] = None
+    sleep_quality: Optional[int] = None
+    energy: Optional[int] = None
+    soreness: Optional[int] = None
+
+
+# Same order the dashboard snapshot uses: the athlete's own check-in first.
+_PRIORITY = {"manual": 0, "intervals_icu": 1, "health_auto_export": 2, "file_upload": 3}
+_HISTORY_FIELDS = ("resting_hr", "hrv_rmssd", "hrv_sdnn", "steps", "ctl", "atl",
+                   "sleep_quality", "energy", "soreness")
+
+
+@router.get("/history", response_model=list[HistoryDay])
+async def wellness_history(
+    days: int = Query(default=30, ge=7, le=180),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """One row per day, each field taken from the highest-priority source that has it."""
+    rows = (await db.execute(
+        select(RecoveryMetric).where(
+            RecoveryMetric.user_id == current_user.id,
+            RecoveryMetric.date >= date.today() - timedelta(days=days),
+            RecoveryMetric.source.not_in(AI_EXCLUDED_SOURCES),
+        )
+    )).scalars().all()
+    by_day: dict[date, list[RecoveryMetric]] = {}
+    for r in rows:
+        by_day.setdefault(r.date, []).append(r)
+    out = []
+    for day in sorted(by_day):
+        ranked = sorted(by_day[day], key=lambda r: _PRIORITY.get(r.source, 9))
+        pick = lambda f: next((getattr(r, f) for r in ranked if getattr(r, f) is not None), None)  # noqa: E731
+        values = {f: pick(f) for f in _HISTORY_FIELDS}
+        sleep = pick("sleep_duration_seconds")
+        values["sleep_hours"] = round(sleep / 3600, 2) if sleep else None
+        if values["ctl"] is not None and values["atl"] is not None:
+            values["tsb"] = round(values["ctl"] - values["atl"], 1)
+        out.append(HistoryDay(date=day, **values))
+    return out

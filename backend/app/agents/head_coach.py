@@ -182,7 +182,10 @@ async def head_coach_synthesize(state: AgentState) -> AgentState:
         key_messages.append(f"Heat advisory: {weather.pacing_note or 'Add 150ml/hr fluid.'}")
 
     if nutrition:
-        workout_note = "" if nutrition.has_scheduled_workout else " (no workout scheduled today — rest-day estimate)"
+        workout_note = (
+            " (based on today's training)" if nutrition.workout_source == "done"
+            else "" if nutrition.has_scheduled_workout else " (no workout yet today: rest-day estimate)"
+        )
         key_messages.append(
             f"Fueling: {nutrition.daily_calories} kcal | C: {nutrition.carbs_g}g P: {nutrition.protein_g}g F: {nutrition.fat_g}g{workout_note}"
         )
